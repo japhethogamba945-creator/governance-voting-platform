@@ -1,0 +1,8 @@
+{% extends "base.html" %}
+{% block title %}{% if creating %}New election{% else %}Edit election{% endif %}{% endblock %}
+{% block content %}
+<p class="crumbs"><a href="{% url 'elections:list' org_slug=request.org.slug %}">Elections</a></p>
+<h1>{% if creating %}New election{% else %}Edit {{ election.title }}{% endif %}</h1>
+<p class="note">Settings can be changed while the election is in draft, taking nominations or under review. They are locked once the election is submitted for approval.</p>
+{% include "elections/_form.html" %}
+{% endblock %}

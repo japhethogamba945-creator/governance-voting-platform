@@ -4,9 +4,10 @@
 <h1>{{ org.legal_name }}</h1>
 <p>Your roles: {% for label in role_labels %}{{ label }}{% if not forloop.last %}, {% endif %}{% endfor %}</p>
 <ul class="cards">
+  {% if "elections.view" in request.permissions %}<li class="card"><a href="{% url 'elections:list' org_slug=org.slug %}">Elections and meetings</a></li>{% endif %}
   {% if "members.view" in request.permissions %}<li class="card"><a href="{% url 'members:list' org_slug=org.slug %}">Membership register</a></li>{% endif %}
   {% if "roles.view" in request.permissions %}<li class="card"><a href="{% url 'tenancy:roles' org_slug=org.slug %}">People and roles</a></li>{% endif %}
   {% if "org.manage_settings" in request.permissions %}<li class="card"><a href="{% url 'tenancy:settings' org_slug=org.slug %}">Organisation settings</a></li>{% endif %}
 </ul>
-<p>You have no elections at the moment.</p>
+{% if "elections.view" not in request.permissions %}<p>You have no elections at the moment.</p>{% endif %}
 {% endblock %}

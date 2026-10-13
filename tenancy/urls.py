@@ -10,4 +10,5 @@ urlpatterns = [
     path("roles/", views.roles_list, name="roles"),
     path("roles/grant/", views.role_grant, name="role_grant"),
     path("roles/revoke/", views.role_revoke, name="role_revoke"),
+    path("roles/invite/", views.official_invite, name="official_invite"),
 ]

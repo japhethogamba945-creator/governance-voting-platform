@@ -1,0 +1,18 @@
+{% extends "base.html" %}
+{% block title %}Elections · {{ request.org.legal_name }}{% endblock %}
+{% block content %}
+<p class="crumbs"><a href="{% url 'tenancy:dashboard' org_slug=request.org.slug %}">{{ request.org.legal_name }}</a></p>
+<h1>Elections</h1>
+<p class="actions">
+  {% if can_edit %}<a class="button" href="{% url 'elections:create' org_slug=request.org.slug %}">New election</a>{% endif %}
+  <a class="button secondary" href="{% url 'elections:meeting_list' org_slug=request.org.slug %}">Meetings</a>
+</p>
+<ul class="cards">
+{% for e in elections %}
+  <li class="card">
+    <a href="{% url 'elections:detail' org_slug=request.org.slug election_id=e.id %}">{{ e.title }}</a>
+    <span class="muted">{{ e.state_label }} · {{ e.seats }} seat{{ e.seats|pluralize }}{% if e.opens_at %} · opens {{ e.opens_at|date:"j M Y, H:i" }}{% endif %}{% if e.meeting %} · {{ e.meeting.title }}{% endif %}</span>
+  </li>
+{% empty %}<li>No elections yet.</li>{% endfor %}
+</ul>
+{% endblock %}

@@ -77,3 +77,28 @@ def make_import_batch(org: Organisation, created_by):
     with acting_as(None):
         return ImportBatch.all_objects.create(organisation=org, created_by=created_by,
                                               file_sha256="0" * 64, rows=[], plan_digest="x")
+
+
+def make_meeting(org: Organisation, created_by, title: str = "AGM 2026 (fictional)"):
+    from django.utils import timezone
+
+    from elections.models import Meeting
+
+    with acting_as(None):
+        return Meeting.all_objects.create(organisation=org, title=title, created_by=created_by,
+                                          scheduled_at=timezone.now())
+
+
+def make_election(org: Organisation, created_by, *, seats: int = 3, title: str = "Board 2026",
+                  opens_in_days: int = 30, **extra):
+    from datetime import timedelta
+
+    from django.utils import timezone
+
+    from elections.models import Election
+
+    opens = timezone.now() + timedelta(days=opens_in_days)
+    with acting_as(None):
+        return Election.all_objects.create(
+            organisation=org, title=title, seats=seats, created_by=created_by,
+            opens_at=opens, closes_at=opens + timedelta(days=2), **extra)

@@ -27,16 +27,22 @@ class Perm(StrEnum):
     ROLES_GRANT = "roles.grant"
     ROLES_VIEW = "roles.view"
     AUDIT_VIEW = "audit.view"
+    ELECTIONS_VIEW = "elections.view"
+    ELECTIONS_EDIT = "elections.edit"  # create and configure while preparing
+    MEETINGS_MANAGE = "meetings.manage"
 
 
 ROLE_PERMISSIONS: dict[Role, frozenset[Perm]] = {
     Role.ORG_ADMIN: frozenset({
         Perm.ORG_VIEW, Perm.ORG_MANAGE_SETTINGS, Perm.MEMBERS_VIEW, Perm.MEMBERS_MANAGE,
         Perm.ROLES_GRANT, Perm.ROLES_VIEW, Perm.AUDIT_VIEW,
+        Perm.ELECTIONS_VIEW, Perm.ELECTIONS_EDIT, Perm.MEETINGS_MANAGE,
     }),
     Role.RETURNING_OFFICER: frozenset({Perm.ORG_VIEW, Perm.MEMBERS_VIEW, Perm.ROLES_VIEW,
-                                       Perm.AUDIT_VIEW}),
-    Role.AUDITOR: frozenset({Perm.ORG_VIEW, Perm.ROLES_VIEW, Perm.AUDIT_VIEW}),
+                                       Perm.AUDIT_VIEW, Perm.ELECTIONS_VIEW,
+                                       Perm.ELECTIONS_EDIT, Perm.MEETINGS_MANAGE}),
+    Role.AUDITOR: frozenset({Perm.ORG_VIEW, Perm.ROLES_VIEW, Perm.AUDIT_VIEW,
+                             Perm.ELECTIONS_VIEW}),
     Role.CANDIDATE: frozenset({Perm.ORG_VIEW}),
     Role.MEMBER: frozenset({Perm.ORG_VIEW}),
 }

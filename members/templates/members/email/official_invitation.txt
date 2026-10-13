@@ -1,0 +1,10 @@
+Hello{% if user.full_name %} {{ user.full_name }}{% endif %},
+
+{{ org.legal_name }} has appointed you {{ role_label }} on its voting and governance platform.
+
+Set up your account here:
+{{ link }}
+
+This link can be used once and expires on {{ expires_at|date:"j M Y, H:i" }} (Nairobi time).
+
+If you did not expect this email, contact {{ org.legal_name }}.

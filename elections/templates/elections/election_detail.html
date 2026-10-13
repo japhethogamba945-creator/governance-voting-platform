@@ -1,0 +1,53 @@
+{% extends "base.html" %}
+{% block title %}{{ election.title }}{% endblock %}
+{% block content %}
+<p class="crumbs"><a href="{% url 'elections:list' org_slug=request.org.slug %}">Elections</a></p>
+<h1>{{ election.title }}</h1>
+<p><strong>Status:</strong> {{ election.state_label }}</p>
+<dl>
+  <dt>Seats</dt><dd>{{ election.seats }}</dd>
+  <dt>Voting opens</dt><dd>{{ election.opens_at|date:"j M Y, H:i"|default:"Not set" }}</dd>
+  <dt>Voting closes</dt><dd>{{ election.closes_at|date:"j M Y, H:i"|default:"Not set" }}</dd>
+  <dt>Meeting</dt><dd>{{ election.meeting.title|default:"—" }}</dd>
+</dl>
+{% if editable %}
+<p class="actions">
+  <a class="button secondary" href="{% url 'elections:edit' org_slug=request.org.slug election_id=election.id %}">Edit settings</a>
+  <a class="button secondary" href="{% url 'elections:rules' org_slug=request.org.slug election_id=election.id %}">{% if version %}Edit rules{% else %}Set rules{% endif %}</a>
+</p>
+{% endif %}
+
+<h2>Rules{% if version %} (version {{ version.version }}{% if version.approved_at %}, approved{% endif %}){% endif %}</h2>
+{% if version %}
+<ul>{% for line in summary %}<li>{{ line }}</li>{% endfor %}</ul>
+<p class="muted">Fingerprint: <code>{{ version.rules_sha256|slice:":16" }}…</code></p>
+{% else %}
+<p>No rules yet.</p>
+{% endif %}
+
+{% if actions %}
+<h2>Next steps</h2>
+<div class="actions">
+  {% for t in actions %}
+  <a class="button{% if t.target == 'cancelled' %} danger{% endif %}" href="{% url 'elections:transition' org_slug=request.org.slug election_id=election.id target=t.target %}">{{ t.label }}</a>
+  {% endfor %}
+</div>
+{% endif %}
+
+<h2>History</h2>
+<ol class="history">
+  {% for h in history %}
+  <li><strong>{{ h.from_state }} → {{ h.to_state }}</strong> <span class="muted">{{ h.at|date:"j M Y, H:i" }} · {{ h.actor.email|default:"system" }}</span>{% if h.reason %}<div>{{ h.reason }}</div>{% endif %}</li>
+  {% empty %}<li>Created {{ election.created_at|date:"j M Y, H:i" }}; no changes of status yet.</li>
+  {% endfor %}
+</ol>
+
+{% if versions %}
+<h2>Rule versions</h2>
+<ul>
+  {% for v in versions %}
+  <li>Version {{ v.version }} · {{ v.created_at|date:"j M Y, H:i" }} by {{ v.created_by.email }}{% if v.approved_at %} · approved by {{ v.approved_by.email }} on {{ v.approved_at|date:"j M Y, H:i" }}{% endif %}</li>
+  {% endfor %}
+</ul>
+{% endif %}
+{% endblock %}

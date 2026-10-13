@@ -191,10 +191,60 @@ def accept_invitation(token: str, password: str | None = None) -> Invitation:
         invitation.accepted_at = now
         invitation.save(update_fields=["accepted_at"])
     with db_context(org_id=invitation.organisation_id):
-        audit("member.invitation_accepted", actor=user,
-              organisation_id=invitation.organisation_id,
-              object_type="member", object_id=invitation.member_id)
+        if invitation.member_id:
+            audit("member.invitation_accepted", actor=user,
+                  organisation_id=invitation.organisation_id,
+                  object_type="member", object_id=invitation.member_id)
+        else:
+            audit("official.invitation_accepted", actor=user,
+                  organisation_id=invitation.organisation_id,
+                  object_type="user", object_id=user.id, details={"role": invitation.role})
     return invitation
+
+
+def invite_official(*, email: str, full_name: str, role: str, actor, actor_membership) -> None:
+    """Invite someone who need not be a member to an official role.
+
+    The role is granted straight away; the person can use it once they have
+    set up their account (an existing account can use it immediately). As with
+    member invitations, the administrator sees the same outcome either way.
+    """
+    from tenancy.roles import GRANTABLE_ROLES, Role
+    from tenancy.services import RoleError, grant_role
+
+    if role not in {r.value for r in GRANTABLE_ROLES}:
+        raise MemberError("That role cannot be granted by invitation.")
+    User = get_user_model()
+    email = User.objects.normalize_email(email)
+    with lookup_scope(email=email):
+        user = User.objects.filter(email=email).first()
+    if user is not None and user.status in (User.Status.LOCKED, User.Status.DISABLED):
+        raise MemberError("The account for this email is locked or disabled. Contact support.")
+    if user is None:
+        user = User.objects.create_user(email, full_name=full_name.strip(),
+                                        status=User.Status.INVITED)
+    membership, _ = OrgMembership.objects.get_or_create(
+        organisation_id=current_org_id(), user_id=user.id)
+    try:
+        grant_role(membership, role, actor=actor, actor_membership=actor_membership)
+    except RoleError as exc:
+        raise MemberError(str(exc)) from exc
+    Invitation.objects.filter(user=user, member__isnull=True, accepted_at__isnull=True,
+                              revoked_at__isnull=True).update(revoked_at=timezone.now())
+    organisation = membership.organisation
+    if user.status == User.Status.ACTIVE:
+        emails.send_added_as_official(organisation, user, Role(role).label)
+    else:
+        token = secrets.token_urlsafe(32)
+        now = timezone.now()
+        invitation = Invitation.objects.create(
+            organisation_id=organisation.id, member=None, role=role, user=user,
+            token_hash=hash_token(token), created_by=actor, created_at=now,
+            expires_at=now + timedelta(days=settings.INVITATION_TTL_DAYS))
+        emails.send_official_invitation(organisation, user, Role(role).label, token,
+                                        invitation.expires_at)
+    audit("official.invited", actor=actor, organisation_id=organisation.id,
+          object_type="user", object_id=user.id, details={"role": role})
 
 
 def apply_import(batch, *, actor) -> dict:

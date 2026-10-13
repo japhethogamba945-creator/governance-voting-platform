@@ -40,3 +40,25 @@ def send_added_to_organisation(member) -> None:
         from_email=settings.DEFAULT_FROM_EMAIL,
         recipient_list=[member.email],
     )
+
+
+def send_official_invitation(org, user, role_label: str, token: str, expires_at) -> None:
+    context = {"org": org, "user": user, "role_label": role_label, "expires_at": expires_at,
+               "link": _absolute(reverse("invite_start", kwargs={"token": token}))}
+    send_mail(
+        subject=f"You have been appointed {role_label} for {org.legal_name}",
+        message=render_to_string("members/email/official_invitation.txt", context),
+        from_email=settings.DEFAULT_FROM_EMAIL,
+        recipient_list=[user.email],
+    )
+
+
+def send_added_as_official(org, user, role_label: str) -> None:
+    context = {"org": org, "user": user, "role_label": role_label,
+               "link": _absolute(reverse("accounts:login"))}
+    send_mail(
+        subject=f"You have been appointed {role_label} for {org.legal_name}",
+        message=render_to_string("members/email/official_added.txt", context),
+        from_email=settings.DEFAULT_FROM_EMAIL,
+        recipient_list=[user.email],
+    )

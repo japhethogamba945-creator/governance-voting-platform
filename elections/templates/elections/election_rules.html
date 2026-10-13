@@ -1,0 +1,8 @@
+{% extends "base.html" %}
+{% block title %}Rules · {{ election.title }}{% endblock %}
+{% block content %}
+<p class="crumbs"><a href="{% url 'elections:detail' org_slug=request.org.slug election_id=election.id %}">{{ election.title }}</a></p>
+<h1>Election rules</h1>
+<p class="note">Each save creates a new numbered version. The Returning Officer approves one version, which then cannot change. Rules must reflect your organisation's governing documents; this system does not decide what they should be.</p>
+{% include "elections/_form.html" %}
+{% endblock %}

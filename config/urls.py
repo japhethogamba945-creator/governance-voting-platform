@@ -12,4 +12,5 @@ urlpatterns = [
     path("invite/<str:token>/", invite_start, name="invite_start"),
     path("o/<slug:org_slug>/", include("tenancy.urls")),
     path("o/<slug:org_slug>/members/", include("members.urls")),
+    path("o/<slug:org_slug>/elections/", include("elections.urls")),
 ]

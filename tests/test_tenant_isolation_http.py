@@ -17,7 +17,7 @@ import uuid
 import pytest
 from django.urls import URLPattern, URLResolver, get_resolver, reverse
 
-from tests.factories import make_import_batch, make_member
+from tests.factories import make_election, make_import_batch, make_meeting, make_member
 from tests.helpers import login, without_csrf
 
 pytestmark = pytest.mark.django_db
@@ -25,6 +25,9 @@ pytestmark = pytest.mark.django_db
 OBJECT_FACTORIES = {
     "member_id": lambda fx: make_member(fx.org, f"F-{uuid.uuid4().hex[:8]}").id,
     "batch_id": lambda fx: make_import_batch(fx.org, fx.admin).id,
+    "meeting_id": lambda fx: make_meeting(fx.org, fx.admin).id,
+    "election_id": lambda fx: make_election(fx.org, fx.admin).id,
+    "target": lambda fx: "nomination",  # a plain value, identical for both organisations
 }
 
 
