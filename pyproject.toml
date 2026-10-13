@@ -1,0 +1,50 @@
+[project]
+name = "governance-voting-platform"
+version = "0.1.0"
+description = "Multi-organisation voting and governance platform"
+requires-python = ">=3.12"
+dependencies = [
+    "django>=5.2,<5.3",
+    "psycopg[binary]>=3.2,<4",
+    "argon2-cffi>=23.1",
+    "django-otp>=1.5,<2",
+    "qrcode>=8.0",
+    "gunicorn>=23.0",
+]
+
+[dependency-groups]
+dev = [
+    "pytest>=8.3",
+    "pytest-django>=4.9",
+    "ruff>=0.8",
+    "pip-audit>=2.7",
+    "bandit>=1.8",
+]
+
+[tool.uv]
+package = false
+
+[tool.pytest.ini_options]
+DJANGO_SETTINGS_MODULE = "config.settings_test"
+python_files = ["test_*.py"]
+addopts = "-ra --strict-markers"
+
+[tool.ruff]
+line-length = 100
+target-version = "py312"
+extend-exclude = ["*/migrations/*"]
+
+[tool.ruff.lint]
+select = ["E", "F", "W", "I", "B", "UP", "S", "DJ"]
+ignore = [
+    "S101",   # assert is fine in tests
+    "DJ008",  # __str__ not needed on every model
+    "DJ012",  # misfires on a second (unscoped) manager
+]
+
+[tool.ruff.lint.per-file-ignores]
+"tests/*" = ["S105", "S106"]
+"config/settings*.py" = ["S105"]
+
+[tool.bandit]
+exclude_dirs = ["tests", ".venv"]

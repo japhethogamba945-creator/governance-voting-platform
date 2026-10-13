@@ -1,0 +1,7 @@
+{% extends "base.html" %}
+{% block title %}{{ org.legal_name }}{% endblock %}
+{% block content %}
+<h1>{{ org.legal_name }}</h1>
+<p>Your roles: {% for label in role_labels %}{{ label }}{% if not forloop.last %}, {% endif %}{% empty %}Member (no assigned role){% endfor %}</p>
+<p>You have no elections at the moment.</p>
+{% endblock %}

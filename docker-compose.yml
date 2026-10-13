@@ -1,0 +1,25 @@
+# Local development stack. Fictional data only.
+services:
+  db:
+    image: postgres:16
+    environment:
+      POSTGRES_USER: gvp_admin
+      POSTGRES_PASSWORD: gvp_admin
+      POSTGRES_DB: gvp
+    ports: ["5432:5432"]
+    volumes:
+      - pgdata:/var/lib/postgresql/data
+      - ./db/roles.sql:/docker-entrypoint-initdb.d/01-roles.sql:ro
+  web:
+    build: .
+    env_file: .env
+    environment:
+      DB_HOST: db
+    command: >
+      sh -c "DB_ASSUME_ROLE= uv run --no-sync python manage.py migrate &&
+             uv run --no-sync python manage.py runserver 0.0.0.0:8000"
+    ports: ["8000:8000"]
+    volumes: [".:/app"]
+    depends_on: [db]
+volumes:
+  pgdata:

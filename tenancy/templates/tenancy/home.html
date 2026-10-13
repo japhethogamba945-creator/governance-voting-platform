@@ -1,0 +1,14 @@
+{% extends "base.html" %}
+{% block title %}My organisations{% endblock %}
+{% block content %}
+<h1>My organisations</h1>
+{% if memberships %}
+<ul class="cards">
+  {% for m in memberships %}
+  <li class="card"><a href="{% url 'tenancy:dashboard' org_slug=m.organisation.slug %}">{{ m.organisation.legal_name }}</a></li>
+  {% endfor %}
+</ul>
+{% else %}
+<p>You are not a member of any organisation yet.</p>
+{% endif %}
+{% endblock %}

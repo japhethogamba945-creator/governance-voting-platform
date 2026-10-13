@@ -1,0 +1,23 @@
+{% load static %}<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>{% block title %}Governance Voting{% endblock %}</title>
+  <link rel="stylesheet" href="{% static 'css/app.css' %}">
+</head>
+<body>
+  <header class="site-header">
+    <a class="brand" href="{% url 'home' %}">Governance Voting</a>
+    {% if user.is_authenticated and user.is_verified %}
+      <form method="post" action="{% url 'accounts:logout' %}" class="inline">
+        {% csrf_token %}
+        <button type="submit" class="link">Sign out</button>
+      </form>
+    {% endif %}
+  </header>
+  <main id="content">
+    {% block content %}{% endblock %}
+  </main>
+</body>
+</html>

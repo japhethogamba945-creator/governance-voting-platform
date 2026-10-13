@@ -1,0 +1,14 @@
+{% extends "base.html" %}
+{% block title %}Confirm it's you{% endblock %}
+{% block content %}
+<h1>Confirm it's you</h1>
+<p>This action needs a fresh code from your authenticator app.</p>
+{% include "form_errors.html" %}
+<form method="post" novalidate>
+  {% csrf_token %}
+  <input type="hidden" name="next" value="{{ next }}">
+  <label for="{{ form.token.id_for_label }}">Code</label>
+  {{ form.token }}
+  <button type="submit">Confirm</button>
+</form>
+{% endblock %}

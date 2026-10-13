@@ -1,0 +1,10 @@
+{% extends "base.html" %}
+{% block title %}Settings · {{ org.legal_name }}{% endblock %}
+{% block content %}
+<h1>Organisation settings</h1>
+<dl>
+  <dt>Legal name</dt><dd>{{ org.legal_name }}</dd>
+  <dt>Address in this system</dt><dd>/o/{{ org.slug }}/</dd>
+  <dt>Time zone</dt><dd>{{ org.timezone }}</dd>
+</dl>
+{% endblock %}

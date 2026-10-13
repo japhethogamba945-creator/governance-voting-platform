@@ -1,0 +1,7 @@
+{% extends "base.html" %}
+{% block title %}Not found{% endblock %}
+{% block content %}
+<h1>Page not found</h1>
+<p>This page does not exist, or you do not have access to it.</p>
+<p><a href="{% url 'home' %}">Go to my organisations</a></p>
+{% endblock %}

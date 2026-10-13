@@ -1,0 +1,7 @@
+{% extends "base.html" %}
+{% block title %}Not allowed{% endblock %}
+{% block content %}
+<h1>Not allowed</h1>
+<p>Your role does not allow this action.</p>
+<p><a href="{% url 'home' %}">Go to my organisations</a></p>
+{% endblock %}

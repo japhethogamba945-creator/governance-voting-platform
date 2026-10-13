@@ -1,0 +1,19 @@
+{% extends "base.html" %}
+{% block title %}Set up your authenticator{% endblock %}
+{% block content %}
+<h1>Set up your authenticator app</h1>
+<ol>
+  <li>Install an authenticator app on your phone (for example Google Authenticator, Microsoft Authenticator or Aegis).</li>
+  <li>Scan this code with the app.</li>
+  <li>Enter the 6-digit code the app shows.</li>
+</ol>
+<img class="qr" src="{{ qr }}" alt="QR code for your authenticator app" width="200" height="200">
+<p>Can't scan? Enter this key manually: <code class="secret">{{ secret }}</code></p>
+{% include "form_errors.html" %}
+<form method="post" novalidate>
+  {% csrf_token %}
+  <label for="{{ form.token.id_for_label }}">Code from the app</label>
+  {{ form.token }}
+  <button type="submit">Confirm</button>
+</form>
+{% endblock %}
