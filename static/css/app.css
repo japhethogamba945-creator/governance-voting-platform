@@ -18,3 +18,25 @@ form.inline { display: inline; }
 a { color: var(--accent); }
 dt { font-weight: 600; margin-top: 8px; }
 dd { margin-left: 0; }
+.crumbs { margin: 0 0 8px; font-size: 14px; }
+.muted, .help { color: var(--muted); font-size: 14px; }
+.card .muted { display: block; }
+.actions { display: flex; flex-wrap: wrap; gap: 12px; align-items: center; margin: 16px 0; }
+.actions button { margin-top: 0; }
+a.button { display: inline-block; min-height: 44px; padding: 10px 20px; border-radius: 6px; background: var(--accent); color: #fff; text-decoration: none; }
+a.button.secondary, button.secondary { background: transparent; color: var(--accent); border: 1px solid var(--accent); }
+a.button.danger, button.danger { background: var(--danger); color: #fff; }
+select, textarea { width: 100%; min-height: 44px; padding: 8px 12px; font-size: 16px; border: 1px solid var(--border); border-radius: 6px; background: var(--bg); color: var(--fg); }
+input[type=date], input[type=file] { min-height: 44px; font-size: 16px; }
+.field-error { color: var(--danger); margin: 4px 0 0; }
+.note { padding: 12px; border-left: 4px solid var(--accent); background: color-mix(in srgb, var(--accent) 8%, transparent); }
+.messages { list-style: none; padding: 0; }
+.message { padding: 12px; margin-bottom: 8px; border-left: 4px solid var(--accent); }
+.message.error { border-color: var(--danger); }
+.filters { display: grid; gap: 4px; margin-bottom: 16px; }
+.pager { display: flex; gap: 16px; justify-content: center; }
+table { width: 100%; border-collapse: collapse; display: block; overflow-x: auto; }
+th, td { text-align: left; padding: 8px; border-bottom: 1px solid var(--border); vertical-align: top; }
+.row-error td { background: color-mix(in srgb, var(--danger) 8%, transparent); }
+.summary { display: flex; flex-wrap: wrap; gap: 16px; list-style: none; padding: 0; }
+form.grant { display: grid; gap: 4px; margin-top: 8px; }

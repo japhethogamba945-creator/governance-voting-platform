@@ -25,3 +25,14 @@ The sponsor approved the blueprint (Phase 1 gate) with the instruction: "use you
 | G5.3 | Residual risks R1–R6 | **Accepted for building the prototype only.** The pilot election is gated again at Phase 8. |
 | G5.4 | Design deviation recorded in 6.1 | Recovery codes are a custom hashed device (`accounts.RecoveryCodeDevice`) instead of django-otp's static device, which stores codes in plaintext. This matches 05 §2. |
 | G5.5 | Known follow-up | `app_user` has no row-level security yet. Login must look users up before any tenant context exists, so access is limited by grants plus application scoping. To be revisited in 6.2, when organisation admins start creating users. |
+
+## Increment 6.2 decisions
+
+| ID | Decision | Resolution |
+|----|----------|------------|
+| I6.2.1 | `app_user` row-level security (G5.5) | **Resolved.** A per-request transaction now opens before authentication and sets `app.user_id` from the server-side session. Pre-authentication lookups use `lookup_scope()`, which exposes exactly one row by email (sign-in) or by invitation token hash. |
+| I6.2.2 | Membership without an active role | Treated as **no access** (404), so deactivating a member removes their access without deleting history. |
+| I6.2.3 | CSV import semantics | Matched on member number, **all or nothing**, never deactivates or deletes, re-validated against the current register at apply time. |
+| I6.2.4 | One account per email | Member emails are unique within an organisation. Two members sharing one email address (e.g. a household) cannot both have accounts; one must use a different email. |
+| I6.2.5 | Invitation tokens in logs | Tokens are redacted from Django and gunicorn logs (`platform_core/logredact.py`). Reverse proxies or CDNs in front of the app must apply the same redaction, or must not log paths: **deployment checklist item**. |
+| I6.2.6 | Officials who are not members | **Open.** Roles can only be granted to people who already belong to the organisation. An external Returning Officer would currently need a register entry. Proposed: an "invite official" flow in increment 6.3. |

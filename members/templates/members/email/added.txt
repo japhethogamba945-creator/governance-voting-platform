@@ -1,0 +1,6 @@
+Hello {{ member.full_name }},
+
+{{ org.legal_name }} has added you as a member on its voting and governance platform. You can sign in with your existing account:
+{{ link }}
+
+If you did not expect this email, contact {{ org.legal_name }}.
