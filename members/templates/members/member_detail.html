@@ -1,0 +1,31 @@
+{% extends "base.html" %}
+{% block title %}{{ member.full_name }}{% endblock %}
+{% block content %}
+<p class="crumbs"><a href="{% url 'members:list' org_slug=request.org.slug %}">Membership register</a></p>
+<h1>{{ member.full_name }}</h1>
+<dl>
+  <dt>Member number</dt><dd>{{ member.member_number }}</dd>
+  <dt>Status</dt><dd>{{ member.get_status_display }}{% if member.deactivation_reason %} — {{ member.deactivation_reason }}{% endif %}</dd>
+  <dt>Category</dt><dd>{{ member.category|title }}</dd>
+  <dt>Subscription</dt><dd>{{ member.get_subscription_status_display }}</dd>
+  <dt>Joined</dt><dd>{{ member.joined_on|date:"j M Y" }}</dd>
+  <dt>Email</dt><dd>{{ member.email|default:"—" }}</dd>
+  <dt>Phone</dt><dd>{{ member.phone|default:"—" }}</dd>
+  <dt>Account</dt><dd>{{ account }}</dd>
+</dl>
+{% if can_manage %}
+<div class="actions">
+  <a class="button secondary" href="{% url 'members:edit' org_slug=request.org.slug member_id=member.id %}">Edit</a>
+  {% if member.is_active %}
+    {% if member.email and account != "Account active" %}
+    <form method="post" action="{% url 'members:invite' org_slug=request.org.slug member_id=member.id %}" class="inline">
+      {% csrf_token %}<button type="submit">{% if account == "Not invited" %}Send invitation{% else %}Resend invitation{% endif %}</button>
+    </form>
+    {% endif %}
+    <a class="button danger" href="{% url 'members:deactivate' org_slug=request.org.slug member_id=member.id %}">Deactivate</a>
+  {% else %}
+    <a class="button" href="{% url 'members:reactivate' org_slug=request.org.slug member_id=member.id %}">Reactivate</a>
+  {% endif %}
+</div>
+{% endif %}
+{% endblock %}

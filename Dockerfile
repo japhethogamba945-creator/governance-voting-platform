@@ -10,5 +10,6 @@ RUN DJANGO_SECRET_KEY=build-only uv run --no-sync python manage.py collectstatic
 USER app
 EXPOSE 8000
 # Process types: web (default), worker and scheduler arrive with background jobs.
+# gunicorn.conf.py (token-redacting access log) is picked up from /app automatically.
 CMD ["uv", "run", "--no-sync", "gunicorn", "config.wsgi:application", "--bind", "0.0.0.0:8000", \
-     "--workers", "3", "--access-logfile", "-"]
+     "--workers", "3"]

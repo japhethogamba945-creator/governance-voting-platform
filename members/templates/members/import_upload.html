@@ -1,0 +1,22 @@
+{% extends "base.html" %}
+{% block title %}Import members{% endblock %}
+{% block content %}
+<p class="crumbs"><a href="{% url 'members:list' org_slug=request.org.slug %}">Membership register</a></p>
+<h1>Import members from CSV</h1>
+<p>Upload a UTF-8 CSV file (at most 2 MB) with a header row. Columns:</p>
+<p><code>member_number, full_name, email, phone, category, subscription_status, joined_on</code></p>
+<ul>
+  <li><code>email</code> and <code>phone</code> may be empty; every other column is required.</li>
+  <li><code>subscription_status</code>: paid, unpaid, exempt or n/a. <code>joined_on</code>: YYYY-MM-DD.</li>
+  <li>Rows are matched on member number. Existing members are updated; nobody is removed or deactivated.</li>
+  <li>You will see a preview before anything changes.</li>
+</ul>
+{% include "form_errors.html" %}
+<form method="post" enctype="multipart/form-data" novalidate>
+  {% csrf_token %}
+  <label for="{{ form.file.id_for_label }}">{{ form.file.label }}</label>
+  {{ form.file }}
+  {% for error in form.file.errors %}<p class="field-error">{{ error }}</p>{% endfor %}
+  <button type="submit">Preview import</button>
+</form>
+{% endblock %}

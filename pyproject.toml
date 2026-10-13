@@ -47,4 +47,5 @@ ignore = [
 "config/settings*.py" = ["S105"]
 
 [tool.bandit]
-exclude_dirs = ["tests", ".venv"]
+exclude_dirs = ["tests", ".venv", "accounts/migrations", "tenancy/migrations",
+                "audit/migrations", "platform_core/migrations", "members/migrations"]

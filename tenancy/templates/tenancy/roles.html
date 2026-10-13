@@ -1,0 +1,36 @@
+{% extends "base.html" %}
+{% block title %}Roles · {{ request.org.legal_name }}{% endblock %}
+{% block content %}
+<p class="crumbs"><a href="{% url 'tenancy:dashboard' org_slug=request.org.slug %}">{{ request.org.legal_name }}</a></p>
+<h1>People and roles</h1>
+<p class="note">Member roles follow the membership register. Official roles are granted here; you cannot change your own roles.</p>
+<ul class="cards">
+{% for p in people %}
+  <li class="card">
+    <strong>{{ p.user.full_name|default:p.user.email }}</strong> <span class="muted">{{ p.user.email }}</span>
+    <ul>
+    {% for a in p.roles %}
+      <li>{{ a.get_role_display }}
+        {% if can_grant and a.role != "member" and a.role != "candidate" and p.membership_id != request.membership.id %}
+        <form method="post" action="{% url 'tenancy:role_revoke' org_slug=request.org.slug %}" class="inline">
+          {% csrf_token %}<input type="hidden" name="assignment" value="{{ a.id }}">
+          <button type="submit" class="link">Remove</button>
+        </form>
+        {% endif %}
+      </li>
+    {% endfor %}
+    </ul>
+    {% if can_grant and p.membership_id != request.membership.id %}
+    <form method="post" action="{% url 'tenancy:role_grant' org_slug=request.org.slug %}" class="grant">
+      {% csrf_token %}<input type="hidden" name="membership" value="{{ p.membership_id }}">
+      <label for="role-{{ p.membership_id }}">Grant role</label>
+      <select id="role-{{ p.membership_id }}" name="role">
+        {% for value, label in grantable %}<option value="{{ value }}">{{ label }}</option>{% endfor %}
+      </select>
+      <button type="submit" class="secondary">Grant</button>
+    </form>
+    {% endif %}
+  </li>
+{% endfor %}
+</ul>
+{% endblock %}

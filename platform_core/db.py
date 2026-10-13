@@ -75,6 +75,36 @@ def db_context(
 
 
 @contextmanager
+def lookup_scope(*, email: str | None = None, invite_token_hash: str | None = None,
+                 using: str = "default") -> Iterator[None]:
+    """Make exactly one otherwise-invisible row readable for a pre-authentication lookup.
+
+    ``app_user`` rows are visible by email only while ``app.auth_email`` is set
+    (sign-in), and invitations by token hash only while
+    ``app.invite_token_hash`` is set (accepting an invitation). Callers must
+    already hold the email/token, so this reveals nothing they did not supply.
+    """
+    connection = connections[using]
+    if not connection.in_atomic_block:
+        raise RuntimeError("lookup_scope() must be used inside transaction.atomic()")
+
+    def apply(email_value: str, token_value: str) -> None:
+        with connection.cursor() as cursor:
+            cursor.execute(
+                "SELECT set_config('app.auth_email', %s, true), "
+                "set_config('app.invite_token_hash', %s, true)",
+                [email_value, token_value],
+            )
+
+    apply((email or "").strip().lower(), invite_token_hash or "")
+    try:
+        yield
+    finally:
+        if not connection.needs_rollback:
+            apply("", "")
+
+
+@contextmanager
 def acting_as(role: str | None, using: str = "default") -> Iterator[None]:
     """Temporarily switch the database role (``None`` = the login role).
 

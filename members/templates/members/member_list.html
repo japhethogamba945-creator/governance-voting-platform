@@ -1,0 +1,41 @@
+{% extends "base.html" %}
+{% block title %}Members · {{ request.org.legal_name }}{% endblock %}
+{% block content %}
+<p class="crumbs"><a href="{% url 'tenancy:dashboard' org_slug=request.org.slug %}">{{ request.org.legal_name }}</a></p>
+<h1>Membership register</h1>
+{% if can_manage %}
+<p class="actions">
+  <a class="button" href="{% url 'members:create' org_slug=request.org.slug %}">Add member</a>
+  <a class="button secondary" href="{% url 'members:import_upload' org_slug=request.org.slug %}">Import CSV</a>
+</p>
+{% endif %}
+<form method="get" class="filters">
+  <label for="q">Search</label>
+  <input type="text" id="q" name="q" value="{{ q }}" placeholder="Name, number or email">
+  <label for="status">Status</label>
+  <select id="status" name="status">
+    <option value="active" {% if status == "active" %}selected{% endif %}>Active</option>
+    <option value="inactive" {% if status == "inactive" %}selected{% endif %}>Inactive</option>
+    <option value="all" {% if status == "all" %}selected{% endif %}>All</option>
+  </select>
+  <button type="submit">Filter</button>
+</form>
+<p>{{ page.paginator.count }} member{{ page.paginator.count|pluralize }}</p>
+<ul class="cards">
+  {% for m in page %}
+  <li class="card">
+    <a href="{% url 'members:detail' org_slug=request.org.slug member_id=m.id %}">{{ m.full_name }}</a>
+    <span class="muted">{{ m.member_number }} · {{ m.category|title }} · {{ m.get_subscription_status_display }}{% if not m.is_active %} · Inactive{% endif %}</span>
+  </li>
+  {% empty %}
+  <li>No members match.</li>
+  {% endfor %}
+</ul>
+{% if page.has_other_pages %}
+<nav class="pager">
+  {% if page.has_previous %}<a href="?q={{ q|urlencode }}&status={{ status }}&page={{ page.previous_page_number }}">Previous</a>{% endif %}
+  <span>Page {{ page.number }} of {{ page.paginator.num_pages }}</span>
+  {% if page.has_next %}<a href="?q={{ q|urlencode }}&status={{ status }}&page={{ page.next_page_number }}">Next</a>{% endif %}
+</nav>
+{% endif %}
+{% endblock %}
