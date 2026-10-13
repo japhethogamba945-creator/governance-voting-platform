@@ -16,7 +16,6 @@ from django_otp import login as otp_login
 from django_otp.plugins.otp_totp.models import TOTPDevice
 
 from audit.services import record as audit
-from platform_core.db import lookup_scope
 from platform_core.net import client_ip
 
 from . import throttle
@@ -29,7 +28,6 @@ GENERIC_CODE_ERROR = "That code is not valid. Check your authenticator app and t
 LOCKED_ERROR = "Too many attempts. Please wait a few minutes and try again."
 
 PRE_MFA_USER = "pre_mfa_user_id"
-PRE_MFA_EMAIL = "pre_mfa_email"
 PRE_MFA_AT = "pre_mfa_at"
 PRE_MFA_NEXT = "pre_mfa_next"
 SHOW_RECOVERY = "show_recovery_codes"
@@ -46,22 +44,11 @@ def _safe_next(request, candidate: str | None) -> str:
 def _pending_user(request):
     """The user who passed the password step but not yet the second factor."""
     user_id = request.session.get(PRE_MFA_USER)
-    email = request.session.get(PRE_MFA_EMAIL)
     started = request.session.get(PRE_MFA_AT, 0)
-    if not user_id or not email or time.time() - started > settings.PRE_MFA_MAX_AGE:
+    if not user_id or time.time() - started > settings.PRE_MFA_MAX_AGE:
         return None
-    with lookup_scope(email=email):
-        user = get_user_model().objects.filter(pk=user_id, email=email).first()
+    user = get_user_model().objects.filter(pk=user_id).first()
     return user if user is not None and user.is_active else None
-
-
-def start_pre_mfa(request, user, next_url: str) -> None:
-    """Record that ``user`` passed the first factor; the second factor comes next."""
-    request.session.cycle_key()
-    request.session[PRE_MFA_USER] = str(user.pk)
-    request.session[PRE_MFA_EMAIL] = user.email
-    request.session[PRE_MFA_AT] = time.time()
-    request.session[PRE_MFA_NEXT] = next_url
 
 
 def _has_confirmed_device(user) -> bool:
@@ -70,10 +57,9 @@ def _has_confirmed_device(user) -> bool:
 
 def _complete_login(request, user, device):
     next_url = request.session.get(PRE_MFA_NEXT)
-    for key in (PRE_MFA_USER, PRE_MFA_EMAIL, PRE_MFA_AT, PRE_MFA_NEXT):
+    for key in (PRE_MFA_USER, PRE_MFA_AT, PRE_MFA_NEXT):
         request.session.pop(key, None)
-    with lookup_scope(email=user.email):  # login() updates app_user.last_login
-        login(request, user, backend="django.contrib.auth.backends.ModelBackend")
+    login(request, user, backend="django.contrib.auth.backends.ModelBackend")
     otp_login(request, device)
     now = time.time()
     request.session["login_at"] = now
@@ -97,13 +83,15 @@ def login_view(request):
         if throttle.is_locked(throttle.account_key(email), throttle.ip_key(ip)):
             error = LOCKED_ERROR
         else:
-            with lookup_scope(email=email):
-                user = authenticate(request, email=email, password=form.cleaned_data["password"])
+            user = authenticate(request, email=email, password=form.cleaned_data["password"])
             if user is None:
                 throttle.record_login_failure(email, ip)
                 error = GENERIC_LOGIN_ERROR
             else:
-                start_pre_mfa(request, user, _safe_next(request, request.GET.get("next")))
+                request.session.cycle_key()
+                request.session[PRE_MFA_USER] = str(user.pk)
+                request.session[PRE_MFA_AT] = time.time()
+                request.session[PRE_MFA_NEXT] = _safe_next(request, request.GET.get("next"))
                 if _has_confirmed_device(user):
                     return redirect("accounts:login_verify")
                 return redirect("accounts:mfa_setup")
@@ -156,9 +144,6 @@ def mfa_setup(request):
     device = TOTPDevice.objects.filter(user=user, confirmed=False).first()
     if device is None:
         device = TOTPDevice.objects.create(user=user, name="Authenticator app", confirmed=False)
-    # Reuse the already-loaded user: before sign-in completes, app_user RLS hides
-    # the row from a fresh lazy lookup (device.config_url reads device.user).
-    device.user = user
     form = TokenForm(request.POST or None)
     error = None
     if request.method == "POST" and form.is_valid():

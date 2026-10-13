@@ -41,6 +41,6 @@ jobs:
       - name: Tests (real PostgreSQL, RLS, least-privilege roles)
         run: uv run pytest
       - name: Static analysis
-        run: uv run bandit -q -r accounts tenancy audit platform_core members config -c pyproject.toml
+        run: uv run bandit -q -r accounts tenancy audit platform_core config -c pyproject.toml
       - name: Dependency audit
         run: uv export --frozen --no-dev --no-hashes -o requirements.txt && uv run pip-audit -r requirements.txt --strict

@@ -2,19 +2,7 @@
 
 A multi-organisation voting and governance platform for clubs and membership organisations: membership registers, nominations, secret-ballot remote elections, counting, certification and audit.
 
-> **Status: prototype, increments 6.1–6.2 (foundation; organisation, membership and invitations).** Not for real elections. Development uses fictional data only. The design and approval history live in [`docs/design/`](docs/design/README.md).
-
-## Increment 6.2: organisation, membership and invitations
-
-| Area | Implemented |
-|---|---|
-| Membership register | Add, edit, search/filter, deactivate (step-up + mandatory reason) and reactivate members. Unique member number and email per organisation. Eligibility-relevant changes (category, subscription, joined date, status) are audited with old and new values; other personal fields by name only |
-| CSV import | Upload → preview (create / update / unchanged / error per row) → apply with step-up. All or nothing; never deactivates; refused if the register changed since the preview |
-| Invitations | Single-use, 7-day token (only its SHA-256 is stored), resend revokes the previous link, token moved out of the URL immediately and redacted from all logs; acceptance sets a password and goes straight into authenticator enrolment. Inviting an email that already has an account links it without revealing that to the administrator |
-| Roles | People-and-roles page; org admins grant/revoke Returning Officer, Auditor and Org Admin (step-up, audited); cannot change own roles; the last administrator cannot be removed (locked against concurrent revocation). The Member role follows the register |
-| Access | A membership with no active role now has no access (same 404 as a non-member) |
-| Row-level security on `app_user` | Users are visible only to themselves, to organisations they belong to, and transiently to a sign-in lookup by exact email or an invitation lookup by token. Resolves decision-log item G5.5 |
-| Tests | 129, including an extended cross-tenant matrix that also checks every object URL against another organisation's object IDs |
+> **Status: prototype, increment 6.1 (foundation).** Not for real elections. Development uses fictional data only. The design and approval history live in [`docs/design/`](docs/design/README.md).
 
 ## What increment 6.1 contains
 

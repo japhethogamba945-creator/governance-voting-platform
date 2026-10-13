@@ -92,9 +92,6 @@ def test_first_login_enrols_totp_and_shows_recovery_codes_once(client):
     assert r.url == "/accounts/mfa/setup/"
     page = client.get("/accounts/mfa/setup/")
     assert page.status_code == 200 and b"data:image/svg+xml" in page.content
-    reload = client.get("/accounts/mfa/setup/")  # reuses the unconfirmed device
-    assert reload.status_code == 200 and page.content.count(b"secret") == \
-        reload.content.count(b"secret")
     device = TOTPDevice.objects.get(user=user, confirmed=False)
     r = client.post("/accounts/mfa/setup/", {"token": totp_now(device)})
     assert r.url == "/accounts/mfa/recovery-codes/"

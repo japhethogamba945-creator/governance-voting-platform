@@ -1,7 +1,0 @@
-{% extends "base.html" %}
-{% block title %}Invitation not valid{% endblock %}
-{% block content %}
-<h1>This invitation link is not valid</h1>
-<p>It may have expired, been replaced by a newer invitation, or already been used. Ask your organisation's administrator to send a new invitation.</p>
-<p>Already set up your account? <a href="{% url 'accounts:login' %}">Sign in</a>.</p>
-{% endblock %}

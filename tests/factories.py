@@ -56,24 +56,3 @@ def current_role() -> str:
     with connection.cursor() as cursor:
         cursor.execute("SELECT current_user")
         return cursor.fetchone()[0]
-
-
-def make_member(org: Organisation, number: str = "M001", *, email: str = "",
-                full_name: str = "Wanjiru Test (fictional)", **extra):
-    from datetime import date
-
-    from members.models import Member
-
-    fields = {"category": "full", "subscription_status": "paid", "joined_on": date(2020, 1, 15),
-              **extra}
-    with acting_as(None):
-        return Member.all_objects.create(organisation=org, member_number=number,
-                                         full_name=full_name, email=email, **fields)
-
-
-def make_import_batch(org: Organisation, created_by):
-    from members.models import ImportBatch
-
-    with acting_as(None):
-        return ImportBatch.all_objects.create(organisation=org, created_by=created_by,
-                                              file_sha256="0" * 64, rows=[], plan_digest="x")

@@ -8,7 +8,6 @@ from django.contrib.auth.views import redirect_to_login
 PUBLIC_PREFIXES = (
     "/accounts/login/",
     "/accounts/mfa/setup/",
-    "/invite/",
     "/static/",
     "/healthz",
 )

@@ -44,14 +44,12 @@ INSTALLED_APPS = [
     "accounts",
     "tenancy",
     "audit",
-    "members",
 ]
 
 MIDDLEWARE = [
     "django.middleware.security.SecurityMiddleware",
     "platform_core.middleware.SecurityHeadersMiddleware",
     "django.contrib.sessions.middleware.SessionMiddleware",
-    "platform_core.middleware.RequestTransactionMiddleware",
     "django.middleware.common.CommonMiddleware",
     "django.middleware.csrf.CsrfViewMiddleware",
     "django.contrib.auth.middleware.AuthenticationMiddleware",
@@ -60,7 +58,7 @@ MIDDLEWARE = [
     "accounts.middleware.RequireVerifiedLoginMiddleware",
     "django.contrib.messages.middleware.MessageMiddleware",
     "django.middleware.clickjacking.XFrameOptionsMiddleware",
-    # Must be last: adds the organisation to the request's RLS context.
+    # Must be last: wraps the view in a transaction carrying the RLS context.
     "tenancy.middleware.TenantContextMiddleware",
 ]
 
@@ -180,23 +178,6 @@ STATIC_URL = "static/"
 STATIC_ROOT = BASE_DIR / "staticfiles"
 STATICFILES_DIRS = [BASE_DIR / "static"]
 
-# --- email -----------------------------------------------------------------
-# Absolute links in emails are built from SITE_URL, never from the Host header.
-SITE_URL = env("SITE_URL", "http://localhost:8000" if DEBUG else "")
-EMAIL_BACKEND = env("EMAIL_BACKEND", "django.core.mail.backends.console.EmailBackend"
-                    if DEBUG else "django.core.mail.backends.smtp.EmailBackend")
-EMAIL_HOST = env("EMAIL_HOST", "localhost")
-EMAIL_PORT = env_int("EMAIL_PORT", 587)
-EMAIL_HOST_USER = env("EMAIL_HOST_USER", "")
-EMAIL_HOST_PASSWORD = env("EMAIL_HOST_PASSWORD", "")
-EMAIL_USE_TLS = env_bool("EMAIL_USE_TLS", True)
-DEFAULT_FROM_EMAIL = env("DEFAULT_FROM_EMAIL", "no-reply@localhost")
-INVITATION_TTL_DAYS = env_int("INVITATION_TTL_DAYS", 7)
-
-# Uploads (CSV import) are read in memory and capped well below this.
-DATA_UPLOAD_MAX_MEMORY_SIZE = 3 * 1024 * 1024
-FILE_UPLOAD_MAX_MEMORY_SIZE = 3 * 1024 * 1024
-
 OTP_TOTP_ISSUER = env("OTP_TOTP_ISSUER", "Governance Voting")
 
 # Request bodies are never logged (see docs/design/05-security-review.md §7).
@@ -206,18 +187,12 @@ LOGGING = {
     "formatters": {
         "plain": {"format": "%(asctime)s %(levelname)s %(name)s %(message)s"},
     },
-    "filters": {"redact": {"()": "platform_core.logredact.RedactSecretsFilter"}},
-    "handlers": {"console": {"class": "logging.StreamHandler", "formatter": "plain",
-                             "filters": ["redact"]}},
+    "handlers": {"console": {"class": "logging.StreamHandler", "formatter": "plain"}},
     "root": {"handlers": ["console"], "level": env("LOG_LEVEL", "INFO")},
     "loggers": {
-        # Replace Django's default handlers (which bypass the redaction filter).
-        "django": {"handlers": ["console"], "level": "INFO", "propagate": False},
         # django.request logs include the request object; keep it to warnings
         # (status + path only) and never attach bodies.
         "django.request": {"level": "WARNING"},
         "django.db.backends": {"level": "WARNING"},
-        # Development server access log: route through the redacting handler.
-        "django.server": {"handlers": ["console"], "level": "INFO", "propagate": False},
     },
 }

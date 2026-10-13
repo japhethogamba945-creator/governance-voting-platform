@@ -31,8 +31,7 @@ GRANTS: dict[str, dict[str, str]] = {
     "otp_totp_totpdevice": {"app_rw": RW},
     # --- accounts ----------------------------------------------------------
     "app_user": {
-        "app_rw": 'SELECT, INSERT, '
-                  'UPDATE (password, last_login, full_name, status, email_verified_at)',
+        "app_rw": "SELECT, UPDATE (password, last_login, full_name, status, email_verified_at)",
         "app_platform": "SELECT, INSERT",
     },
     "accounts_recovery_code_device": {"app_rw": RW},
@@ -48,10 +47,6 @@ GRANTS: dict[str, dict[str, str]] = {
         "app_rw": "SELECT, INSERT, UPDATE (valid_to)",
         "app_platform": "SELECT, INSERT",
     },
-    # --- members -----------------------------------------------------------
-    "member": {"app_rw": "SELECT, INSERT, UPDATE"},
-    "invitation": {"app_rw": "SELECT, INSERT, UPDATE (accepted_at, revoked_at)"},
-    "member_import_batch": {"app_rw": "SELECT, INSERT, UPDATE (status, applied_at, rows)"},
     # --- audit -------------------------------------------------------------
     "audit_event": {
         "app_rw": "SELECT, INSERT",
