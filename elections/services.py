@@ -23,8 +23,11 @@ class ElectionError(ValueError):
 
 
 # Checks and effects other apps run inside a transition, after its own
-# preconditions and before the state changes, in the same transaction. A hook
-# raises ElectionError to block the transition. Registered from AppConfig.ready().
+# preconditions and before the state changes, in the same transaction:
+# ``hook(election, target, actor, context)``. ``actor`` is None for system
+# transitions; ``context`` carries request data (e.g. chosen keyholders) and
+# lets hooks hand results back (e.g. the one-time backup code). A hook raises
+# ElectionError to block the transition. Registered from AppConfig.ready().
 TRANSITION_HOOKS: list = []
 
 
@@ -116,9 +119,11 @@ def _set_reason(reason: str) -> None:
         cursor.execute("SELECT set_config('app.transition_reason', %s, true)", [reason])
 
 
-def transition(election: Election, target: str, *, actor, roles, reason: str = "") -> Election:
+def transition(election: Election, target: str, *, actor, roles, reason: str = "",
+               context: dict | None = None) -> Election:
     """Move an election to ``target`` if the actor's roles and the state allow it."""
     reason = (reason or "").strip()[:1000]
+    context = {} if context is None else context
     current = (Election.objects.select_for_update(of=("self",))
                .select_related("current_rule_version").get(pk=election.pk))
     spec = lifecycle.TRANSITIONS.get((current.state, target))
@@ -156,12 +161,34 @@ def transition(election: Election, target: str, *, actor, roles, reason: str = "
               details={"version": version.version, "rules_sha256": version.rules_sha256})
 
     for hook in TRANSITION_HOOKS:
-        hook(current, target, actor)
+        hook(current, target, actor, context)
+    return _apply_transition(current, target, actor=actor, reason=reason)
 
+
+def system_transition(election: Election, target: str, *, reason: str = "",
+                      context: dict | None = None) -> Election:
+    """A transition performed by the scheduler (no person), e.g. opening at ``opens_at``."""
+    context = {} if context is None else context
+    current = (Election.objects.select_for_update(of=("self",))
+               .select_related("current_rule_version").get(pk=election.pk))
+    spec = lifecycle.TRANSITIONS.get((current.state, target))
+    if spec is None or spec.roles != lifecycle.SYSTEM or not spec.available:
+        raise ElectionError(f"{current.state} -> {target} is not an automatic transition.")
+    if target == lifecycle.OPEN:
+        if current.opens_at is None or current.opens_at > timezone.now():
+            raise ElectionError("The opening time has not been reached.")
+        if current.public_key is None:
+            raise ElectionError("The election has no public key (no key ceremony).")
+    for hook in TRANSITION_HOOKS:
+        hook(current, target, None, context)
+    return _apply_transition(current, target, actor=None, reason=reason)
+
+
+def _apply_transition(current: Election, target: str, *, actor, reason: str) -> Election:
     # The history row is written by a trigger from app.user_id and
     # app.transition_reason: set both explicitly so attribution never depends
     # on the caller's context.
-    with db_context(user_id=actor.id, org_id=current.organisation_id):
+    with db_context(user_id=actor.id if actor else None, org_id=current.organisation_id):
         _set_reason(reason)
         try:
             updated = (Election.objects.filter(pk=current.pk, state=current.state)

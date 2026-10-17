@@ -89,6 +89,9 @@ def election_detail(request, org_slug, election_id):
         "versions": election.rule_versions.select_related("created_by", "approved_by"),
         "history": election.transitions.select_related("actor"),
         "actions": lifecycle.available_for(election.state, request.roles),
+        "key_shares": election.key_shares.all(),
+        "electorate_size": election.electorate.count(),
+        "votes_cast": election.entitlements.filter(status="consumed").count(),
         "editable": (election.state in lifecycle.EDITABLE_STATES
                      and Perm.ELECTIONS_EDIT in request.permissions),
     })
@@ -143,21 +146,39 @@ def election_transition(request, org_slug, election_id, target):
         return redirect("elections:detail", org_slug=org_slug, election_id=election.id)
     if spec.step_up and not has_recent_mfa(request):
         return step_up_redirect(request)  # then back to this confirmation page
+    keyholder_choices = None
+    actor_is_keyholder = True
+    if target == lifecycle.SCHEDULED:
+        from keys.services import active_key, eligible_keyholders
+
+        actor_is_keyholder = active_key(request.user) is not None
+        keyholder_choices = [(str(k.user_id), k.user.full_name or k.user.email)
+                             for k in eligible_keyholders().exclude(user=request.user)]
     # Bind on any POST: an empty POST (no note typed) is falsy but still a submission.
     form = TransitionForm(request.POST if request.method == "POST" else None,
-                          reason_required=spec.reason_required)
+                          reason_required=spec.reason_required,
+                          keyholder_choices=keyholder_choices)
     if request.method == "POST" and form.is_valid():
+        context = {"keyholder_user_ids": form.cleaned_data.get("keyholders", [])}
         try:
             services.transition(election, target, actor=request.user, roles=request.roles,
-                                reason=form.cleaned_data["reason"])
+                                reason=form.cleaned_data["reason"], context=context)
         except services.ElectionError as exc:
             form.add_error(None, str(exc))
         else:
+            if "backup_secret" in context:
+                election.refresh_from_db(fields=["public_key", "public_key_fpr", "state"])
+                # Rendered directly (not stored, not redirected): shown exactly once.
+                response = render(request, "elections/backup_code.html", {
+                    "election": election, "backup_code": context["backup_secret"]})
+                response.headers["Cache-Control"] = "no-store"
+                return response
             messages.success(request, f"{spec.label}: done.")
             return redirect("elections:detail", org_slug=org_slug, election_id=election.id)
     version = election.current_rule_version
     return render(request, "elections/election_transition.html", {
         "election": election, "spec": spec, "form": form,
+        "actor_is_keyholder": actor_is_keyholder,
         "summary": rules.describe(version.rules, election.seats) if version else [],
         "version": version,
     })

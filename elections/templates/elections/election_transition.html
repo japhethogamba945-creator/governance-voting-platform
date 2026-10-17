@@ -13,9 +13,20 @@
 </div>
 {% endif %}
 {% if spec.target == "cancelled" %}<p class="alert">Cancelling is permanent. A cancelled election cannot be reopened; a new election would have to be created.</p>{% endif %}
+{% if spec.target == "scheduled" and not actor_is_keyholder %}
+<p class="alert" role="alert">You need to <a href="{% url 'keys:passphrase' org_slug=request.org.slug %}">set your keyholder passphrase</a> before you can schedule an election.</p>
+{% endif %}
 <form method="post" novalidate>
   {% csrf_token %}
   {% for error in form.non_field_errors %}<p class="alert" role="alert">{{ error }}</p>{% endfor %}
+  {% if form.keyholders %}
+    <fieldset>
+      <legend>{{ form.keyholders.label }}</legend>
+      {% for choice in form.keyholders %}<label class="check">{{ choice.tag }} {{ choice.choice_label }}</label>{% empty %}<p>No other officials have set a keyholder passphrase yet.</p>{% endfor %}
+      <p class="help">{{ form.keyholders.help_text }}</p>
+      {% for error in form.keyholders.errors %}<p class="field-error">{{ error }}</p>{% endfor %}
+    </fieldset>
+  {% endif %}
   <label for="{{ form.reason.id_for_label }}">{{ form.reason.label }}</label>
   {{ form.reason }}
   {% for error in form.reason.errors %}<p class="field-error">{{ error }}</p>{% endfor %}

@@ -21,6 +21,7 @@ os.environ.setdefault("SECURE_SSL_REDIRECT", "false")
 from .settings import *  # noqa: E402,F403
 
 PASSWORD_HASHERS = ["tests.hashers.FastArgon2Hasher"]
+KEYHOLDER_KDF = "interactive"  # cheap Argon2id parameters for the test suite only
 ALLOWED_HOSTS = ["testserver", "localhost"]
 SITE_URL = "https://vote.example"
 
