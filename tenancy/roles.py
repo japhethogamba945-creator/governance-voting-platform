@@ -33,6 +33,7 @@ class Perm(StrEnum):
     NOMINATIONS_SUBMIT = "nominations.submit"  # members: nominate, confirm, withdraw
     NOMINATIONS_VIEW = "nominations.view"
     NOMINATIONS_REVIEW = "nominations.review"  # approve or reject
+    KEYS_HOLD = "keys.hold"  # set a keyholder passphrase; hold election key shares
 
 
 ROLE_PERMISSIONS: dict[Role, frozenset[Perm]] = {
@@ -40,13 +41,15 @@ ROLE_PERMISSIONS: dict[Role, frozenset[Perm]] = {
         Perm.ORG_VIEW, Perm.ORG_MANAGE_SETTINGS, Perm.MEMBERS_VIEW, Perm.MEMBERS_MANAGE,
         Perm.ROLES_GRANT, Perm.ROLES_VIEW, Perm.AUDIT_VIEW,
         Perm.ELECTIONS_VIEW, Perm.ELECTIONS_EDIT, Perm.MEETINGS_MANAGE, Perm.NOMINATIONS_VIEW,
+        Perm.KEYS_HOLD,
     }),
     Role.RETURNING_OFFICER: frozenset({Perm.ORG_VIEW, Perm.MEMBERS_VIEW, Perm.ROLES_VIEW,
                                        Perm.AUDIT_VIEW, Perm.ELECTIONS_VIEW,
                                        Perm.ELECTIONS_EDIT, Perm.MEETINGS_MANAGE,
-                                       Perm.NOMINATIONS_VIEW, Perm.NOMINATIONS_REVIEW}),
+                                       Perm.NOMINATIONS_VIEW, Perm.NOMINATIONS_REVIEW,
+                                       Perm.KEYS_HOLD}),
     Role.AUDITOR: frozenset({Perm.ORG_VIEW, Perm.ROLES_VIEW, Perm.AUDIT_VIEW,
-                             Perm.ELECTIONS_VIEW, Perm.NOMINATIONS_VIEW}),
+                             Perm.ELECTIONS_VIEW, Perm.NOMINATIONS_VIEW, Perm.KEYS_HOLD}),
     Role.CANDIDATE: frozenset({Perm.ORG_VIEW}),
     Role.MEMBER: frozenset({Perm.ORG_VIEW, Perm.NOMINATIONS_SUBMIT}),
 }

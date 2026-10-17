@@ -157,3 +157,40 @@ def make_document(org: Organisation, created_by, *, nomination=None):
             organisation=org, nomination=nomination, storage_name=name,
             original_name="statement.pdf", sha256=hashlib.sha256(data).hexdigest(),
             mime="application/pdf", size_bytes=len(data), uploaded_by=created_by)
+
+
+KEYHOLDER_PASSPHRASE = "correct horse battery staple keyholder"
+
+
+def make_keyholder(org: Organisation, user=None, *, role: Role = Role.AUDITOR,
+                   passphrase: str = KEYHOLDER_PASSPHRASE):
+    """An official with a keyholder key (created with the admin login)."""
+    import uuid as _uuid
+
+    from keys import crypto
+    from keys.models import KeyholderKey
+
+    if user is None:
+        user, _ = make_user(f"keyholder-{_uuid.uuid4().hex[:6]}@example.org")
+        add_member(org, user, role)
+    material = crypto.new_keyholder_keypair(passphrase)
+    with acting_as(None):
+        KeyholderKey.all_objects.create(organisation=org, user=user,
+                                        public_key=material["public_key"], salt=material["salt"],
+                                        encrypted_private_key=material["encrypted_private_key"],
+                                        kdf=material["kdf"])
+    return user
+
+
+def backdate_opening(election, minutes: int = 1) -> None:
+    """TEST ONLY: move a scheduled election's opening time into the past.
+
+    Scheduling requires a future opening time and the test runs inside one
+    transaction, so the opening time is moved back here, bypassing the triggers
+    with the superuser-only replication role.
+    """
+    with acting_as(None), connection.cursor() as cursor:
+        cursor.execute("SET LOCAL session_replication_role = replica")
+        cursor.execute("UPDATE election SET opens_at = now() - make_interval(mins => %s) "
+                       "WHERE id = %s", [minutes, election.pk])
+        cursor.execute("SET LOCAL session_replication_role = origin")

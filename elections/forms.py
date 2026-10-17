@@ -176,8 +176,20 @@ class TransitionForm(forms.Form):
     reason = forms.CharField(required=False, max_length=1000,
                              widget=forms.Textarea(attrs={"rows": 3}))
 
-    def __init__(self, *args, reason_required: bool, **kwargs):
+    def __init__(self, *args, reason_required: bool, keyholder_choices=None, **kwargs):
         super().__init__(*args, **kwargs)
         self.fields["reason"].required = reason_required
         self.fields["reason"].label = ("Reason (recorded in the election history) *"
                                        if reason_required else "Note (optional)")
+        if keyholder_choices is not None:
+            self.fields["keyholders"] = forms.MultipleChoiceField(
+                choices=keyholder_choices, widget=forms.CheckboxSelectMultiple,
+                label="Choose two other keyholders",
+                help_text="You are the first keyholder. Choose two other officials who have "
+                          "set a keyholder passphrase. A sealed backup is created as well.")
+
+    def clean_keyholders(self):
+        chosen = self.cleaned_data["keyholders"]
+        if len(chosen) != 2:
+            raise forms.ValidationError("Choose exactly two other keyholders.")
+        return chosen

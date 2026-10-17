@@ -63,6 +63,14 @@ GRANTS: dict[str, dict[str, str]] = {
     "nomination": {"app_rw": "SELECT, INSERT, UPDATE"},
     "nomination_document": {"app_rw": "SELECT, INSERT, DELETE, UPDATE (scan_status)"},
     "candidate": {"app_rw": "SELECT, INSERT, UPDATE, DELETE"},
+    # --- keys and electorate -------------------------------------------------
+    "keyholder_key": {"app_rw": "SELECT, INSERT, "
+                                "UPDATE (salt, encrypted_private_key, kdf, retired_at)"},
+    "key_share": {"app_rw": "SELECT, INSERT"},
+    "electorate_entry": {"app_rw": "SELECT, INSERT"},
+    # Casting (issued -> consumed) moves to the dedicated app_voting role in 6.6.
+    "entitlement": {"app_rw": "SELECT, INSERT, UPDATE (status, consumed_on, idempotency_hash, "
+                              "revoked_reason, revoked_by_id)"},
     # --- audit -------------------------------------------------------------
     "audit_event": {
         "app_rw": "SELECT, INSERT",

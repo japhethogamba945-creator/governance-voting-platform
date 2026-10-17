@@ -38,6 +38,18 @@
 </div>
 {% endif %}
 
+{% if election.public_key_fpr %}
+<h2>Counting key</h2>
+<p class="muted">Public key fingerprint: <code>{{ election.public_key_fpr|slice:":16" }}…</code></p>
+<ul>{% for s in key_shares %}<li>Share {{ s.share_index }}: {{ s.holder_label }}</li>{% endfor %}</ul>
+<p class="muted">Any two of these shares are needed to count.</p>
+{% endif %}
+{% if election.electorate_digest %}
+<h2>Electorate</h2>
+<p>{{ electorate_size }} eligible voter{{ electorate_size|pluralize }} (frozen when voting opened). Ballots cast: {{ votes_cast }}.</p>
+<p class="muted">Electorate fingerprint: <code>{{ election.electorate_digest|slice:":16" }}…</code></p>
+{% endif %}
+
 <h2>History</h2>
 <ol class="history">
   {% for h in history %}

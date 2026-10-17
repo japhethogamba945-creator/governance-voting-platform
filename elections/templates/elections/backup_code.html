@@ -1,0 +1,16 @@
+{% extends "base.html" %}
+{% block title %}Backup code · {{ election.title }}{% endblock %}
+{% block content %}
+<h1>Election scheduled: print the backup code now</h1>
+<p class="alert" role="alert"><strong>This code is shown only once.</strong> It is not stored anywhere in the system.</p>
+<p>It opens the sealed backup share of the counting key. Together with any one keyholder it can count the votes, so if a keyholder forgets their passphrase, the election can still be counted.</p>
+<p class="backup-code"><code>{{ backup_code }}</code></p>
+<ol>
+  <li>Print this page or write the code down exactly.</li>
+  <li>Seal it in a tamper-evident envelope. The Returning Officer and a witness sign across the seal.</li>
+  <li>Store the envelope offline, somewhere safe, away from the keyholders.</li>
+  <li>Record in the minutes who holds the envelope.</li>
+</ol>
+<p>Public key fingerprint (for the record): <code>{{ election.public_key_fpr }}</code></p>
+<p><a class="button" href="{% url 'elections:detail' org_slug=request.org.slug election_id=election.id %}">I have recorded the backup code</a></p>
+{% endblock %}

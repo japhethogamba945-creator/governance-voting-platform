@@ -11,12 +11,21 @@ from django.utils import timezone
 from audit.models import AuditEvent
 from elections import lifecycle, rules, services
 from elections.models import Election, ElectionRuleVersion, LifecycleTransition
+from electorate.services import open_due_elections
 from nominations import services as nomination_services
 from nominations.models import Nomination
 from platform_core.db import acting_as, db_context
 from tenancy.models import RoleAssignment
 from tenancy.roles import Role
-from tests.factories import add_member, make_election, make_member, make_user, totp_now
+from tests.factories import (
+    add_member,
+    backdate_opening,
+    make_election,
+    make_keyholder,
+    make_member,
+    make_user,
+    totp_now,
+)
 from tests.helpers import login
 
 pytestmark = pytest.mark.django_db
@@ -33,10 +42,20 @@ def valid_rules(seats=3, **overrides):
 
 @pytest.fixture
 def ro(two_orgs):
+    """A Returning Officer who is a keyholder, plus two other keyholders in org A."""
     a, _ = two_orgs
     user, device = make_user("ro@example.org")
     add_member(a.org, user, Role.RETURNING_OFFICER)
+    make_keyholder(a.org, user)
+    KEYHOLDERS[a.org.id] = [make_keyholder(a.org).id, make_keyholder(a.org).id]
     return user, device
+
+
+KEYHOLDERS: dict = {}
+
+
+def _ceremony(org):
+    return {"keyholder_user_ids": KEYHOLDERS[org.id]}
 
 
 def _in_org(org):
@@ -61,7 +80,8 @@ def _prepared(two_orgs, ro_user, *, state=lifecycle.SCHEDULED, rules_author=None
             if target == lifecycle.READY:  # an approved candidate is needed from here on
                 nomination = Nomination.objects.get(election=election)
                 nomination_services.decide(nomination, approve=True, reason="", actor=ro_user)
-            services.transition(election, target, actor=ro_user, roles={Role.RETURNING_OFFICER})
+            services.transition(election, target, actor=ro_user, roles={Role.RETURNING_OFFICER},
+                                context=_ceremony(a.org))
             if target == lifecycle.NOMINATION:
                 election.refresh_from_db()
                 nomination_services.submit(election, submitter=nominee, nominee=nominee,
@@ -178,7 +198,7 @@ def test_reason_required_and_unavailable_transitions(two_orgs, ro):
             election=election, reason="Seats changed by board").exists()
     scheduled = _prepared(two_orgs, ro_user)
     with transaction.atomic(), _in_org(a.org):
-        with pytest.raises(services.ElectionError, match="not available yet"):
+        with pytest.raises(PermissionDenied):  # opening is done by the scheduler, not a person
             services.transition(scheduled, lifecycle.OPEN, actor=ro_user,
                                 roles={Role.RETURNING_OFFICER})
 
@@ -247,8 +267,10 @@ def test_configuration_locked_after_submission_and_closed_is_final(two_orgs, ro)
             cursor.execute("DELETE FROM election_rule_version WHERE id = %s",
                            [election.current_rule_version_id])
 
-        # Walk the system transitions directly to test suspension and closing.
-        Election.objects.filter(pk=election.pk).update(state="open")
+        # Open through the scheduler (freezes the electorate), then test suspension
+        # and closing directly against the database.
+        backdate_opening(election)
+        assert open_due_elections()[0][1].startswith("opened")
         _set_reason("Power outage at polling hub")
         Election.objects.filter(pk=election.pk).update(state="suspended")
         Election.objects.filter(pk=election.pk).update(
@@ -362,7 +384,14 @@ def test_ui_flow_create_rules_and_schedule(client, two_orgs, ro):
                    {"token": totp_now(ro_device, offset_steps=1)})
     page = ro_client.get(f"{election_url}transition/scheduled/").content.decode()
     assert "rules version 1" in page
-    assert ro_client.post(f"{election_url}transition/scheduled/").status_code == 302
+    r = ro_client.post(f"{election_url}transition/scheduled/",
+                       {"keyholders": [str(u) for u in KEYHOLDERS[a.org.id]]})
+    assert r.status_code == 200 and "shown only once" in r.content.decode()
+    code = re.search(r'class="backup-code"><code>([A-Z2-7-]+)</code>', r.content.decode())
+    assert code and len(code.group(1).replace("-", "")) == 52
+    with acting_as(None):
+        fpr = Election.all_objects.get(title="Directors 2026 (fictional)").public_key_fpr
+    assert len(fpr) == 64 and fpr in r.content.decode()
     with acting_as(None):
         assert Election.all_objects.get(title="Directors 2026 (fictional)").state == "scheduled"
     assert client.get(f"{election_url}edit/").status_code == 302  # locked: redirected

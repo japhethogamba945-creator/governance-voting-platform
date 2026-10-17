@@ -105,6 +105,25 @@ def lookup_scope(*, email: str | None = None, invite_token_hash: str | None = No
 
 
 @contextmanager
+def scheduler_scope(using: str = "default") -> Iterator[None]:
+    """Let the scheduler list elections that are due to open or close, across
+    organisations (policy ``scheduler_due`` on ``election``). Only ids, states and
+    times are read under this scope; each election is then handled in its own
+    organisation's context."""
+    connection = connections[using]
+    if not connection.in_atomic_block:
+        raise RuntimeError("scheduler_scope() must be used inside transaction.atomic()")
+    with connection.cursor() as cursor:
+        cursor.execute("SELECT set_config('app.scheduler', 'on', true)")
+    try:
+        yield
+    finally:
+        if not connection.needs_rollback:
+            with connection.cursor() as cursor:
+                cursor.execute("SELECT set_config('app.scheduler', '', true)")
+
+
+@contextmanager
 def acting_as(role: str | None, using: str = "default") -> Iterator[None]:
     """Temporarily switch the database role (``None`` = the login role).
 

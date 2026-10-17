@@ -10,6 +10,7 @@ dependencies = [
     "django-otp>=1.5,<2",
     "qrcode>=8.0",
     "gunicorn>=23.0",
+    "pynacl>=1.5",
 ]
 
 [dependency-groups]
@@ -49,4 +50,5 @@ ignore = [
 [tool.bandit]
 exclude_dirs = ["tests", ".venv", "accounts/migrations", "tenancy/migrations",
                 "audit/migrations", "platform_core/migrations", "members/migrations",
-                "elections/migrations", "nominations/migrations"]
+                "elections/migrations", "nominations/migrations", "keys/migrations",
+                "electorate/migrations"]

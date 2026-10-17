@@ -9,7 +9,8 @@ RUN DJANGO_SECRET_KEY=build-only uv run --no-sync python manage.py collectstatic
     && useradd --system --uid 10001 app
 USER app
 EXPOSE 8000
-# Process types: web (default), worker and scheduler arrive with background jobs.
+# Process types: web (default) and scheduler:
+#   uv run --no-sync python manage.py run_scheduler --loop   (one instance only)
 # gunicorn.conf.py (token-redacting access log) is picked up from /app automatically.
 CMD ["uv", "run", "--no-sync", "gunicorn", "config.wsgi:application", "--bind", "0.0.0.0:8000", \
      "--workers", "3"]

@@ -47,6 +47,8 @@ INSTALLED_APPS = [
     "members",
     "elections",
     "nominations",
+    "keys",
+    "electorate",
 ]
 
 MIDDLEWARE = [
@@ -207,6 +209,9 @@ STORAGES = {
 # Uploads (CSV import) are read in memory and capped well below this.
 DATA_UPLOAD_MAX_MEMORY_SIZE = 3 * 1024 * 1024
 FILE_UPLOAD_MAX_MEMORY_SIZE = 6 * 1024 * 1024  # nomination documents up to 5 MB
+
+# Argon2id cost for keyholder passphrases: "moderate" (libsodium MODERATE, ~256 MiB).
+KEYHOLDER_KDF = env("KEYHOLDER_KDF", "moderate")
 
 OTP_TOTP_ISSUER = env("OTP_TOTP_ISSUER", "Governance Voting")
 

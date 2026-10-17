@@ -2,7 +2,19 @@
 
 A multi-organisation voting and governance platform for clubs and membership organisations: membership registers, nominations, secret-ballot remote elections, counting, certification and audit.
 
-> **Status: prototype, increments 6.1–6.4 (foundation; membership and invitations; meetings, elections and lifecycle; nominations).** Not for real elections. Development uses fictional data only. The design and approval history live in [`docs/design/`](docs/design/README.md).
+> **Status: prototype, increments 6.1–6.5 (foundation; membership and invitations; meetings, elections and lifecycle; nominations; keys and electorate).** Not for real elections. Development uses fictional data only. The design and approval history live in [`docs/design/`](docs/design/README.md).
+
+## Increment 6.5: key ceremony, electorate and opening
+
+| Area | Implemented |
+|---|---|
+| Keyholders | Officials set a keyholder passphrase (at least 20 characters, step-up). This creates a personal X25519 key pair whose private half is stored only encrypted under the passphrase (Argon2id, libsodium MODERATE, ~0.5 s and ~256 MiB per unlock). Changing the passphrase keeps the key pair |
+| Key ceremony | Part of "Approve and schedule": the Returning Officer picks two other keyholders. An election X25519 key is generated and split by 2-of-4 replicated secret sharing (three keyholders plus a sealed offline backup). Every pair is self-tested before anything is stored. Each share is sealed to its keyholder's public key; the backup share is encrypted under a one-time 256-bit backup code that is shown exactly once and never stored. The public key and its fingerprint are recorded and audited |
+| Key reconstruction | `keys.services.rebuild_election_key` rebuilds the private key from any two holders (passphrase or backup code), for counting in 6.7. Tested for all six pairs, wrong passphrases, non-keyholders and single shares |
+| Opening | `manage.py run_scheduler` (cron or a timer every minute, or `--loop`) opens scheduled elections at their opening time, each in its own transaction and organisation context. It lists due elections through a narrow policy that exposes only scheduled and open elections, only while the scheduler scope is set. An election with no eligible voters stays scheduled and the failure is audited |
+| Electorate and entitlements | At opening the electorate is frozen: every active member who meets the approved eligibility rules gets an electorate entry and exactly one entitlement (`UNIQUE (election, member)`). A fingerprint of the electorate is stored on the election (write-once) and audited |
+| Database enforcement | Scheduling requires the ceremony (public key plus at least three shares); opening requires the frozen electorate and the opening time to have passed. Shares are written only during the ceremony and never change. Electorate entries are added only at opening (or, with a reason, while suspended) and are never changed or deleted. An entitlement changes once, from issued: to consumed only while voting is open, or to revoked only while suspended. Nothing is deleted |
+| Tests | 237 |
 
 ## Increment 6.4: candidate nominations
 

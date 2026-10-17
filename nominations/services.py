@@ -295,7 +295,7 @@ def candidate_list_digest(candidates) -> str:
 
 
 @register_transition_hook
-def lifecycle_hook(election, target: str, actor) -> None:
+def lifecycle_hook(election, target: str, actor, context: dict) -> None:
     """Nomination rules that gate election transitions."""
     if target == lifecycle.NOMINATION and election.current_rule_version_id is None:
         raise ElectionError("Set the election rules before opening nominations: they decide "
