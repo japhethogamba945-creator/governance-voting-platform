@@ -1,5 +1,6 @@
 """Keyholder keys, the key ceremony (at "Approve and schedule") and key reconstruction."""
 
+import base64
 import hashlib
 import uuid
 
@@ -97,11 +98,13 @@ def ceremony_hook(election, target: str, actor, context: dict) -> None:
         KeyShare.objects.create(
             organisation_id=election.organisation_id, election=election, share_index=index,
             keyholder_key=keys[uid], holder_label=keys[uid].user.email,
-            encrypted_bundle=bundle, bundle_sha256=hashlib.sha256(bundle).hexdigest())
+            recipient_public_key=bytes(keys[uid].public_key), encrypted_bundle=bundle,
+            bundle_sha256=hashlib.sha256(bundle).hexdigest())
     KeyShare.objects.create(
         organisation_id=election.organisation_id, election=election,
         share_index=KEYHOLDERS_REQUIRED + 1, keyholder_key=None,
-        holder_label="Sealed offline backup", encrypted_bundle=result["backup_bundle"],
+        holder_label="Sealed offline backup", recipient_public_key=result["backup_public_key"],
+        encrypted_bundle=result["backup_bundle"],
         bundle_sha256=hashlib.sha256(result["backup_bundle"]).hexdigest())
     from elections.models import Election  # local: avoid an import cycle at app loading
 
@@ -114,6 +117,90 @@ def ceremony_hook(election, target: str, actor, context: dict) -> None:
           details={"public_key_fpr": result["fingerprint"],
                    "keyholders": [str(uid) for uid in chosen],
                    "shares": KEYHOLDERS_REQUIRED + 1, "threshold": 2})
+
+
+def _open_share(contribution: dict, shares: list[KeyShare]):
+    """Open the contributor's own share: (share, bundle, private key for staged pieces)."""
+    if "backup_code" in contribution:
+        share = next((s for s in shares if s.keyholder_key_id is None), None)
+        if share is None:
+            raise KeysError("This election has no backup share.")
+        bundle = crypto.open_backup_bundle(bytes(share.encrypted_bundle),
+                                           contribution["backup_code"])
+        private = crypto.backup_private_key(crypto.parse_backup_secret(
+            contribution["backup_code"]))
+        return share, bundle, private
+    share = next((s for s in shares if s.keyholder_key_id
+                  and s.keyholder_key.user_id == contribution["user"].id), None)
+    if share is None:
+        raise KeysError("You are not a keyholder for this election.")
+    key = share.keyholder_key
+    private = crypto.unlock_keyholder(bytes(key.salt), bytes(key.encrypted_private_key),
+                                      contribution["passphrase"])
+    return share, crypto.open_holder_bundle(bytes(share.encrypted_bundle), private), private
+
+
+def _shares(election) -> list[KeyShare]:
+    return list(KeyShare.objects.filter(election=election).select_related("keyholder_key"))
+
+
+def stage_share(election, contribution: dict) -> tuple[int, dict[str, str]]:
+    """First of two contributions to a count: returns (share index, staged pieces).
+
+    ``contribution`` is ``{"user": <user>, "passphrase": str}`` or
+    ``{"backup_code": str}``. The staged pieces are sealed to the other holders'
+    public keys; the server cannot rebuild the key from them alone.
+    """
+    shares = _shares(election)
+    try:
+        share, bundle, _ = _open_share(contribution, shares)
+        recipients = {}
+        for s in shares:
+            if s.share_index == share.share_index:
+                continue
+            public = s.recipient_public_key or (s.keyholder_key.public_key if s.keyholder_key_id
+                                                else None)
+            if public is not None:
+                recipients[s.share_index] = bytes(public)
+        return share.share_index, crypto.stage_pieces(share.share_index, bundle, recipients)
+    except crypto.KeyError_ as exc:
+        raise KeysError(str(exc)) from exc
+
+
+def share_index_for(election, contribution: dict) -> int | None:
+    """The share index a contribution would use, without opening anything."""
+    for s in _shares(election):
+        if "backup_code" in contribution and s.keyholder_key_id is None:
+            return s.share_index
+        if "user" in contribution and s.keyholder_key_id \
+                and s.keyholder_key.user_id == contribution["user"].id:
+            return s.share_index
+    return None
+
+
+def rebuild_from_staged(election, contribution: dict, staged: dict[int, dict]):
+    """Second contribution: rebuild the election key from a staged first contribution.
+
+    ``staged`` maps the first contributor's share index to its staged pieces.
+    Returns ``(first index, own index, nacl PrivateKey)``; the key must stay in
+    memory only.
+    """
+    shares = _shares(election)
+    try:
+        share, bundle, private = _open_share(contribution, shares)
+        for first_index, pieces in staged.items():
+            if first_index == share.share_index:
+                continue
+            sealed = pieces.get(str(share.share_index))
+            if sealed is None:
+                continue
+            key = crypto.rebuild_from_staged(bundle, private, base64.b64decode(sealed),
+                                             bytes(election.public_key))
+            return first_index, share.share_index, key
+    except crypto.KeyError_ as exc:
+        raise KeysError(str(exc)) from exc
+    raise KeysError("The other contribution cannot be combined with yours. Ask the Returning "
+                    "Officer to restart the count.")
 
 
 def rebuild_election_key(election, contributions: list[dict]):

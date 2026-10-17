@@ -1,0 +1,23 @@
+{% extends "base.html" %}
+{% load static %}
+{% block title %}Receipt check · {{ election.title }}{% endblock %}
+{% block content %}
+<p class="crumbs"><a href="{% url 'tenancy:dashboard' org_slug=request.org.slug %}">{{ request.org.legal_name }}</a></p>
+<h1>Check your receipt: {{ election.title }}</h1>
+{% if not sealed %}
+<p>The list of receipts is published when voting closes.</p>
+{% else %}
+<p>When you voted you were given a receipt code. If its fingerprint is in this list, the ballot you cast is in the sealed ballot box that is counted. The code does not show how you voted, and the check happens only in your browser: your code is never sent to the server.</p>
+<form id="receipt-check" data-election="{{ election.id }}" class="js-only" hidden>
+  <label for="receipt-code-input">Your receipt code</label>
+  <input type="text" id="receipt-code-input" autocomplete="off" spellcheck="false" placeholder="XXXX-XXXX-XXXX-XXXX">
+  <button type="submit">Check</button>
+  <p id="receipt-result" role="status"></p>
+</form>
+<noscript><p>Without JavaScript: compute SHA-256 of the text <code>rcpt/v1{{ election.id }}</code> followed by your code (capital letters, no dashes or spaces) with any SHA-256 tool, and look for the result in the list below.</p></noscript>
+<h2>{{ commitments|length }} receipt fingerprint{{ commitments|length|pluralize }}</h2>
+<p class="muted">Fingerprint of this list (SHA-256 of the lines joined by newlines): <code>{{ digest }}</code></p>
+<ol id="commitments" class="receipts">{% for c in commitments %}<li><code>{{ c }}</code></li>{% endfor %}</ol>
+<script src="{% static 'js/receipts.js' %}"></script>
+{% endif %}
+{% endblock %}

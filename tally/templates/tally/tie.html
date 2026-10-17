@@ -1,0 +1,27 @@
+{% extends "base.html" %}
+{% block title %}Resolve tie · {{ election.title }}{% endblock %}
+{% block content %}
+<p class="crumbs"><a href="{% url 'tally:count' org_slug=request.org.slug election_id=election.id %}">Counting: {{ election.title }}</a></p>
+<h1>Record the outcome of the tie procedure</h1>
+<p>{{ tied|length }} candidates are tied for {{ seats }} seat{{ seats|pluralize }}, each with {{ tied.0.votes }} vote{{ tied.0.votes|pluralize }}.</p>
+<div class="note">
+  <p><strong>Approved procedure:</strong> {{ procedure }}.</p>
+  <p>{{ description }}</p>
+  <p class="muted">Carry out the procedure as approved, then record its outcome here. The system does not choose between tied candidates.</p>
+</div>
+<form method="post" novalidate>
+  {% csrf_token %}
+  {% for error in form.non_field_errors %}<p class="alert" role="alert">{{ error }}</p>{% endfor %}
+  <fieldset>
+    <legend>{{ form.elected.label }}</legend>
+    {% for choice in form.elected %}<label class="check">{{ choice.tag }} {{ choice.choice_label }}</label>{% endfor %}
+    {% for error in form.elected.errors %}<p class="field-error">{{ error }}</p>{% endfor %}
+  </fieldset>
+  <label for="{{ form.evidence.id_for_label }}">{{ form.evidence.label }}</label>
+  {{ form.evidence }}
+  <p class="help">{{ form.evidence.help_text }}</p>
+  {% for error in form.evidence.errors %}<p class="field-error">{{ error }}</p>{% endfor %}
+  <button type="submit">Record outcome</button>
+  <a href="{% url 'tally:count' org_slug=request.org.slug election_id=election.id %}">Back</a>
+</form>
+{% endblock %}

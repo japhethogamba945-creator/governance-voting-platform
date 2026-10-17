@@ -88,7 +88,7 @@ def build_open_election(org, admin, *, seats=2, rules_overrides=None, voters=3):
         cands = list(Candidate.all_objects.filter(election=election).order_by("ballot_order"))
     return {"org": org, "election": election, "candidates": cands, "voters": people,
             "outsider": (outsider, outsider_user, outsider_device), "ro": (ro, ro_device),
-            "backup_code": context["backup_secret"]}
+            "keyholders": [ro, *others], "backup_code": context["backup_secret"]}
 
 
 @pytest.fixture

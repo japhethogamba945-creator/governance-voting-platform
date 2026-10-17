@@ -1,0 +1,23 @@
+<h2>{{ doc.election.title }}</h2>
+<p>{{ doc.organisation.name }} · {{ doc.election.seats }} seat{{ doc.election.seats|pluralize }}</p>
+<table>
+  <thead><tr><th>Rank</th><th>Candidate</th><th>Votes</th><th>Outcome</th></tr></thead>
+  <tbody>
+  {% for r in doc.results %}
+  <tr><td>{{ r.rank }}</td><td>{{ r.name }}</td><td>{{ r.votes }}</td><td>{% if r.outcome == "elected" %}<strong>Elected</strong>{% else %}Not elected{% endif %}</td></tr>
+  {% endfor %}
+  </tbody>
+</table>
+{% if doc.tie_resolution %}
+<p><strong>Tie:</strong> resolved by {{ doc.tie_resolution.procedure|lower }}. Elected: {{ doc.tie_resolution.elected|join:", " }}. {{ doc.tie_resolution.evidence }}</p>
+{% endif %}
+<dl>
+  <dt>Eligible voters</dt><dd>{{ doc.count.electorate }}</dd>
+  <dt>Ballots counted</dt><dd>{{ doc.count.ballots }} ({{ doc.count.blank }} blank, {{ doc.count.invalid }} invalid)</dd>
+  <dt>Count</dt><dd>Version {{ doc.count.version }}{% if doc.count.kind == "recount" %} (recount: {{ doc.count.reason }}){% endif %}</dd>
+  <dt>Rules</dt><dd>Version {{ doc.election.rules_version }} · <code>{{ doc.election.rules_sha256|slice:":16" }}…</code></dd>
+  <dt>Ballot box seal</dt><dd><code>{{ doc.election.ballot_set_digest|slice:":16" }}…</code></dd>
+  <dt>Receipt list</dt><dd>{{ doc.receipts.count }} receipts · <code>{{ doc.receipts.sha256|slice:":16" }}…</code></dd>
+</dl>
+<p class="statement">{{ doc.statement }}</p>
+<p>{{ doc.certified_by }}, Returning Officer · {{ doc.certified_at|slice:":16" }}</p>

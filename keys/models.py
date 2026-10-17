@@ -55,6 +55,9 @@ class KeyShare(models.Model):
     keyholder_key = models.ForeignKey(KeyholderKey, on_delete=models.PROTECT, null=True,
                                       blank=True, related_name="+")
     holder_label = models.CharField(max_length=200)
+    # Public key that pieces are sealed to while counting (the keyholder's own key,
+    # or the key derived from the backup code). Empty only for shares made before 6.7.
+    recipient_public_key = models.BinaryField(null=True, blank=True)
     encrypted_bundle = models.BinaryField()
     bundle_sha256 = models.CharField(max_length=64)
     created_at = models.DateTimeField(default=timezone.now)

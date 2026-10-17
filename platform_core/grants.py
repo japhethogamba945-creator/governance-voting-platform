@@ -56,16 +56,18 @@ GRANTS: dict[str, dict[str, str]] = {
     "meeting": {"app_rw": "SELECT, INSERT, UPDATE"},
     # app_voting: UPDATE (id) only so that SELECT ... FOR SHARE is permitted (the
     # guard trigger forbids changing the id); it never updates elections.
-    "election": {"app_rw": "SELECT, INSERT, UPDATE", "app_voting": "SELECT, UPDATE (id)"},
+    "election": {"app_rw": "SELECT, INSERT, UPDATE", "app_voting": "SELECT, UPDATE (id)",
+                 "app_tally": "SELECT"},
     "election_rule_version": {"app_rw": "SELECT, INSERT, UPDATE (approved_by_id, approved_at)",
-                              "app_voting": "SELECT"},
+                              "app_voting": "SELECT", "app_tally": "SELECT"},
     "allowed_transition": {"app_rw": "SELECT"},
     # Written only by the election_record_transition() trigger (SECURITY DEFINER).
     "lifecycle_transition": {"app_rw": "SELECT"},
     # --- nominations ---------------------------------------------------------
     "nomination": {"app_rw": "SELECT, INSERT, UPDATE"},
     "nomination_document": {"app_rw": "SELECT, INSERT, DELETE, UPDATE (scan_status)"},
-    "candidate": {"app_rw": "SELECT, INSERT, UPDATE, DELETE", "app_voting": "SELECT"},
+    "candidate": {"app_rw": "SELECT, INSERT, UPDATE, DELETE", "app_voting": "SELECT",
+                  "app_tally": "SELECT"},
     # --- keys and electorate -------------------------------------------------
     "keyholder_key": {"app_rw": "SELECT, INSERT, "
                                 "UPDATE (salt, encrypted_private_key, kdf, retired_at)"},
@@ -76,13 +78,28 @@ GRANTS: dict[str, dict[str, str]] = {
     "entitlement": {"app_rw": "SELECT, INSERT, UPDATE (status, revoked_reason, revoked_by_id)",
                     "app_voting": "SELECT, UPDATE (status, consumed_on, idempotency_hash)"},
     # --- the ballot box (increment 6.6) ---------------------------------------
-    # Insert-only for app_voting; the web role has no access at all. app_tally
-    # (counting, 6.7) will get SELECT.
-    "ballot": {"app_voting": "INSERT"},
+    # Insert-only for app_voting; the web role has no access at all. Only
+    # app_tally (counting) reads ciphertexts, never receipt commitments.
+    "ballot": {"app_voting": "INSERT",
+               "app_tally": "SELECT (id, organisation_id, election_id, ciphertext)"},
+    # --- counting, certification and publication (increment 6.7) ------------------
+    "count_request": {"app_rw": "SELECT, INSERT, UPDATE (status, closed_at, tally_id)"},
+    # Staged key pieces: deleted when the count completes, is cancelled or expires.
+    "key_contribution": {"app_rw": "SELECT, INSERT, DELETE"},
+    # Tallies and their lines are written only by app_tally and never changed.
+    "tally": {"app_rw": "SELECT", "app_tally": "SELECT, INSERT"},
+    "tally_line": {"app_rw": "SELECT", "app_tally": "INSERT"},
+    "tie_resolution": {"app_rw": "SELECT, INSERT", "app_tally": "SELECT"},
+    "certification": {
+        "app_rw": "SELECT, INSERT, "
+                  "UPDATE (published_at, published_by_id, superseded_at, supersede_reason)",
+        "app_tally": "SELECT",
+    },
     # --- audit -------------------------------------------------------------
     "audit_event": {
         "app_rw": "SELECT, INSERT",
         "app_voting": "INSERT",
+        "app_tally": "INSERT",
         "app_platform": "SELECT, INSERT",
         "app_audit": "SELECT, UPDATE (seq, prev_hash, hash)",
     },

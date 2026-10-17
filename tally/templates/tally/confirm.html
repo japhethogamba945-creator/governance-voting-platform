@@ -1,0 +1,12 @@
+{% extends "base.html" %}
+{% block title %}{{ title }}{% endblock %}
+{% block content %}
+<p class="crumbs"><a href="{% url 'tally:count' org_slug=request.org.slug election_id=election.id %}">Counting: {{ election.title }}</a></p>
+<h1>{{ title }}</h1>
+<p>{{ text }}</p>
+<form method="post">
+  {% csrf_token %}
+  <button type="submit">{{ button }}</button>
+  <a href="{% url 'tally:count' org_slug=request.org.slug election_id=election.id %}">Back</a>
+</form>
+{% endblock %}

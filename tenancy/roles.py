@@ -35,6 +35,9 @@ class Perm(StrEnum):
     NOMINATIONS_REVIEW = "nominations.review"  # approve or reject
     KEYS_HOLD = "keys.hold"  # set a keyholder passphrase; hold election key shares
     MARKED_REGISTER_VIEW = "voting.marked_register"  # who voted (never how): RO, Auditor
+    TALLY_RUN = "tally.run"  # start counts and recounts, resolve ties, certify
+    TALLY_VIEW = "tally.view"  # counts before publication
+    RESULTS_PUBLISH = "results.publish"  # publish a certified result to members
 
 
 ROLE_PERMISSIONS: dict[Role, frozenset[Perm]] = {
@@ -42,16 +45,18 @@ ROLE_PERMISSIONS: dict[Role, frozenset[Perm]] = {
         Perm.ORG_VIEW, Perm.ORG_MANAGE_SETTINGS, Perm.MEMBERS_VIEW, Perm.MEMBERS_MANAGE,
         Perm.ROLES_GRANT, Perm.ROLES_VIEW, Perm.AUDIT_VIEW,
         Perm.ELECTIONS_VIEW, Perm.ELECTIONS_EDIT, Perm.MEETINGS_MANAGE, Perm.NOMINATIONS_VIEW,
-        Perm.KEYS_HOLD,
+        Perm.KEYS_HOLD, Perm.RESULTS_PUBLISH,
     }),
     Role.RETURNING_OFFICER: frozenset({Perm.ORG_VIEW, Perm.MEMBERS_VIEW, Perm.ROLES_VIEW,
                                        Perm.AUDIT_VIEW, Perm.ELECTIONS_VIEW,
                                        Perm.ELECTIONS_EDIT, Perm.MEETINGS_MANAGE,
                                        Perm.NOMINATIONS_VIEW, Perm.NOMINATIONS_REVIEW,
-                                       Perm.KEYS_HOLD, Perm.MARKED_REGISTER_VIEW}),
+                                       Perm.KEYS_HOLD, Perm.MARKED_REGISTER_VIEW,
+                                       Perm.TALLY_RUN, Perm.TALLY_VIEW,
+                                       Perm.RESULTS_PUBLISH}),
     Role.AUDITOR: frozenset({Perm.ORG_VIEW, Perm.ROLES_VIEW, Perm.AUDIT_VIEW,
                              Perm.ELECTIONS_VIEW, Perm.NOMINATIONS_VIEW, Perm.KEYS_HOLD,
-                             Perm.MARKED_REGISTER_VIEW}),
+                             Perm.MARKED_REGISTER_VIEW, Perm.TALLY_VIEW}),
     Role.CANDIDATE: frozenset({Perm.ORG_VIEW}),
     Role.MEMBER: frozenset({Perm.ORG_VIEW, Perm.NOMINATIONS_SUBMIT}),
 }

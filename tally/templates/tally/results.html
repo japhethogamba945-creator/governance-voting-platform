@@ -1,0 +1,16 @@
+{% extends "base.html" %}
+{% block title %}Results · {{ election.title }}{% endblock %}
+{% block content %}
+<p class="crumbs"><a href="{% url 'tenancy:dashboard' org_slug=request.org.slug %}">{{ request.org.legal_name }}</a></p>
+<h1>Results: {{ election.title }}</h1>
+{% if certification %}
+  {% if election.state == "disputed" %}<p class="alert" role="alert">This result has been marked as disputed and is under review.</p>{% endif %}
+  {% include "tally/_document.html" %}
+  <p>Certified result fingerprint (SHA-256): <code>{{ certification.content_sha256 }}</code></p>
+  <p><a href="{% url 'tally:document' org_slug=request.org.slug election_id=election.id %}">Download the certified document</a> (its SHA-256 equals the fingerprint above). <a href="{% url 'tally:receipts' org_slug=request.org.slug election_id=election.id %}">Check your receipt code</a>.</p>
+{% elif withdrawn %}
+  <p>The result published on {{ withdrawn.published_at|date:"j M Y" }} was withdrawn on {{ withdrawn.superseded_at|date:"j M Y" }} for a recount: {{ withdrawn.supersede_reason }}</p>
+{% else %}
+  <p>Results will appear here once they are certified and published.</p>
+{% endif %}
+{% endblock %}

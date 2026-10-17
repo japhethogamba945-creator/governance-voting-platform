@@ -1,0 +1,17 @@
+{% extends "base.html" %}
+{% block title %}Certify · {{ election.title }}{% endblock %}
+{% block content %}
+<p class="crumbs"><a href="{% url 'tally:count' org_slug=request.org.slug election_id=election.id %}">Counting: {{ election.title }}</a></p>
+<h1>Certify the result?</h1>
+<p>This is the document you will certify. It is stored exactly as shown, with its SHA-256 fingerprint, and cannot be changed afterwards. Certifying does not publish it: publication to members is a separate step.</p>
+{% if error %}<p class="alert" role="alert">{{ error }}</p>{% endif %}
+{% for b in blockers %}<p class="alert" role="alert">{{ b }}</p>{% endfor %}
+<div class="note">{% include "tally/_document.html" %}</div>
+{% if not blockers %}
+<form method="post">
+  {% csrf_token %}
+  <button type="submit">Certify this result</button>
+  <a href="{% url 'tally:count' org_slug=request.org.slug election_id=election.id %}">Back</a>
+</form>
+{% endif %}
+{% endblock %}

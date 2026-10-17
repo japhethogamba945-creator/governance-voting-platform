@@ -17,6 +17,13 @@
   {% if v.voted %}<span>✅ Your ballot was accepted.</span>{% else %}<a class="button" href="{% url 'voting:ballot' org_slug=org.slug election_id=v.election.id %}">Vote</a>{% endif %}
 </li>{% endfor %}</ul>
 {% endif %}
+{% if closed %}
+<h2>Voting closed</h2>
+<ul class="cards">{% for e in closed %}<li class="card"><strong>{{ e.title }}</strong>
+  {% if e.published %}<a class="button" href="{% url 'tally:results' org_slug=org.slug election_id=e.id %}">Results</a>{% else %}<span class="muted">Results not yet published</span>{% endif %}
+  <a href="{% url 'tally:receipts' org_slug=org.slug election_id=e.id %}">Check your receipt</a>
+</li>{% endfor %}</ul>
+{% endif %}
 {% if taking_nominations %}
 <h2>Taking nominations</h2>
 <ul class="cards">{% for e in taking_nominations %}<li class="card"><a href="{% url 'nominations:mine' org_slug=org.slug election_id=e.id %}">{{ e.title }}</a> <span class="muted">{{ e.seats }} seat{{ e.seats|pluralize }}</span></li>{% endfor %}</ul>

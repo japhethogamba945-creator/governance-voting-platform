@@ -1,0 +1,17 @@
+{% extends "base.html" %}
+{% block title %}{% if recount %}Recount{% else %}Count{% endif %} · {{ election.title }}{% endblock %}
+{% block content %}
+<p class="crumbs"><a href="{% url 'tally:count' org_slug=request.org.slug election_id=election.id %}">Counting: {{ election.title }}</a></p>
+<h1>{% if recount %}Order a recount?{% else %}Start the count?{% endif %}</h1>
+<p>Two keyholders will then each provide their share on the counting page. Every ballot in the sealed ballot box is decrypted and counted as soon as the second share is provided; individual ballots are never shown or stored.</p>
+{% if recount %}<p>A recount creates a new count version. Earlier counts are kept.{% if election.state == "disputed" %} The current certified result will be withdrawn when the recount completes.{% endif %}</p>{% endif %}
+<form method="post" novalidate>
+  {% csrf_token %}
+  {% for error in form.non_field_errors %}<p class="alert" role="alert">{{ error }}</p>{% endfor %}
+  <label for="{{ form.reason.id_for_label }}">{{ form.reason.label }}</label>
+  {{ form.reason }}
+  {% for error in form.reason.errors %}<p class="field-error">{{ error }}</p>{% endfor %}
+  <button type="submit">{% if recount %}Order a recount{% else %}Start the count{% endif %}</button>
+  <a href="{% url 'tally:count' org_slug=request.org.slug election_id=election.id %}">Back</a>
+</form>
+{% endblock %}

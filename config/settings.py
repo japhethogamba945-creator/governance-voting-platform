@@ -50,6 +50,7 @@ INSTALLED_APPS = [
     "keys",
     "electorate",
     "voting",
+    "tally",
 ]
 
 MIDDLEWARE = [

@@ -2,7 +2,24 @@
 
 A multi-organisation voting and governance platform for clubs and membership organisations: membership registers, nominations, secret-ballot remote elections, counting, certification and audit.
 
-> **Status: prototype, increments 6.1–6.6 (foundation; membership and invitations; meetings, elections and lifecycle; nominations; keys and electorate; secret ballot).** Not for real elections. Development uses fictional data only. The design and approval history live in [`docs/design/`](docs/design/README.md).
+> **Status: prototype, increments 6.1–6.7 (foundation; membership and invitations; meetings, elections and lifecycle; nominations; keys and electorate; secret ballot; counting and results).** Not for real elections. Development uses fictional data only. The design and approval history live in [`docs/design/`](docs/design/README.md).
+
+## Increment 6.7: counting, ties, recounts, certification and results
+
+| Area | Implemented |
+|---|---|
+| Counting with two keyholders | The Returning Officer starts the count (step-up). Two **different people** then each provide a share in their own session: a keyholder passphrase, or the sealed backup code. The first share is opened and the one piece it shares with each other holder is sealed to that holder's public key, so nothing stored is enough to rebuild the key. Staged pieces expire after 30 minutes and are deleted by the scheduler. The second share plus the piece staged for it rebuild the key **in memory**, and the count runs at once (I6.7.1) |
+| The count | Runs as `app_tally` (`SET LOCAL ROLE`), the only role that can read ciphertexts, and it cannot read receipt commitments. Every ballot is decrypted and re-validated: wrong key, wrong election, unknown or duplicate candidates, or too many choices make it **invalid**. Only totals are kept. Individual ballots are never stored, logged or audited |
+| Reconciliation | The ballot box matches the digest sealed at close; ballots equal the members marked as having voted; every ballot is valid; voters are within the electorate. The database refuses a tally whose digest or ballot count differs from the box. A failed check leaves the election in "Counted" and blocks certification |
+| Seats and ties | Plurality, multi-seat. A tie for the last seat(s) is **never broken by the system**: those candidates stay "tied" until the Returning Officer records the outcome of the procedure from the approved rules, with evidence. The database checks that the outcome fills exactly the seats in the tie and uses the approved procedure |
+| Recounts | Ordered with a reason from Counted, Awaiting certification or Disputed. Each recount is a new, immutable tally version, and earlier versions are kept. A recount of a disputed result withdraws (supersedes) its certification |
+| Certification | The Returning Officer certifies (step-up) a canonical JSON result document. The database stores it byte for byte with its SHA-256 and refuses certification by the person who wrote the rules, or of anything but the latest reconciled count with any tie resolved. Rules with a quorum cannot be certified until 6.8 |
+| Publication | A separate step (Org Admin or Returning Officer, step-up). Members see results only after publication. They can view the document and download it; its SHA-256 equals the published fingerprint. "Mark disputed" and "Re-certify" are available |
+| Receipt check | After close, members see the sorted list of receipt commitments (via a `SECURITY DEFINER` function) and its digest. The check runs **only in the browser**: the code is hashed locally and never sent to the server |
+| Immutability | Tallies, lines and tie resolutions cannot be changed or deleted. A certification can only be published once, or superseded once while disputed. Even the superuser is stopped by the triggers |
+| Acceptance tests | 9 (no results before certification and publication), 10 (recount keeps earlier counts), 11 (a reconciliation failure blocks certification), 12 (ties need the recorded procedure). Also: allocation vs an independent reference on 3,000 random elections, and counting vs a reference tally including invalid ballots |
+| Verified in a browser | Headless Chromium at phone width, results and receipt check: the correct code is found and highlighted, a wrong code is not, and no request is made during the check |
+| Tests | 308 |
 
 ## Increment 6.6: secret ballot casting and closing
 
