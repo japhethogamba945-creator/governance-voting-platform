@@ -1,3 +1,5 @@
+import zoneinfo
+
 from django.conf import settings
 from django.contrib.auth import logout
 from django.contrib.auth.views import redirect_to_login
@@ -66,4 +68,9 @@ class TenantContextMiddleware:
             request.membership = membership
             request.roles = frozenset(roles)
             request.permissions = permissions_for(roles)
-            return self.get_response(request)
+            # Times are entered and shown in the organisation's time zone.
+            timezone.activate(zoneinfo.ZoneInfo(org.timezone))
+            try:
+                return self.get_response(request)
+            finally:
+                timezone.deactivate()

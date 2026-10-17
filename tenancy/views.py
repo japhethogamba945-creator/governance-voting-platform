@@ -1,11 +1,12 @@
 import uuid
 
+from django import forms
 from django.contrib import messages
 from django.db.models import Q
 from django.http import Http404
 from django.shortcuts import get_object_or_404, redirect, render
 from django.utils import timezone
-from django.views.decorators.http import require_GET, require_POST
+from django.views.decorators.http import require_GET, require_http_methods, require_POST
 
 from accounts.stepup import step_up_required
 
@@ -105,3 +106,32 @@ def _uuid(value):
         return uuid.UUID(str(value))
     except ValueError as exc:
         raise Http404 from exc
+
+
+class OfficialInviteForm(forms.Form):
+    email = forms.EmailField(max_length=254, label="Email")
+    full_name = forms.CharField(max_length=200, label="Full name")
+    role = forms.ChoiceField(choices=[(r.value, r.label) for r in GRANTABLE_ROLES],
+                             label="Role")
+
+
+@require_http_methods(["GET", "POST"])
+@requires(Perm.ROLES_GRANT)
+@step_up_required
+def official_invite(request, org_slug):
+    """Appoint an official (e.g. an independent Returning Officer) who need not be a member."""
+    from members.services import MemberError, invite_official
+
+    form = OfficialInviteForm(request.POST or None)
+    if request.method == "POST" and form.is_valid():
+        try:
+            invite_official(email=form.cleaned_data["email"],
+                            full_name=form.cleaned_data["full_name"],
+                            role=form.cleaned_data["role"], actor=request.user,
+                            actor_membership=request.membership)
+        except MemberError as exc:
+            form.add_error(None, str(exc))
+        else:
+            messages.success(request, f"Invitation sent to {form.cleaned_data['email']}.")
+            return redirect("tenancy:roles", org_slug=org_slug)
+    return render(request, "tenancy/official_invite.html", {"form": form})

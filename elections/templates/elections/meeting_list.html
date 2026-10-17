@@ -1,0 +1,16 @@
+{% extends "base.html" %}
+{% block title %}Meetings · {{ request.org.legal_name }}{% endblock %}
+{% block content %}
+<p class="crumbs"><a href="{% url 'elections:list' org_slug=request.org.slug %}">Elections</a></p>
+<h1>Meetings</h1>
+{% if can_manage %}<p class="actions"><a class="button" href="{% url 'elections:meeting_create' org_slug=request.org.slug %}">Add meeting</a></p>{% endif %}
+<ul class="cards">
+{% for m in meetings %}
+  <li class="card">
+    <strong>{{ m.title }}</strong>
+    <span class="muted">{{ m.get_kind_display }} · {{ m.scheduled_at|date:"j M Y, H:i" }}{% if m.is_remote %} · remote{% elif m.location %} · {{ m.location }}{% endif %}</span>
+    {% if can_manage %}<a href="{% url 'elections:meeting_edit' org_slug=request.org.slug meeting_id=m.id %}">Edit</a>{% endif %}
+  </li>
+{% empty %}<li>No meetings yet.</li>{% endfor %}
+</ul>
+{% endblock %}

@@ -2,7 +2,19 @@
 
 A multi-organisation voting and governance platform for clubs and membership organisations: membership registers, nominations, secret-ballot remote elections, counting, certification and audit.
 
-> **Status: prototype, increments 6.1–6.2 (foundation; organisation, membership and invitations).** Not for real elections. Development uses fictional data only. The design and approval history live in [`docs/design/`](docs/design/README.md).
+> **Status: prototype, increments 6.1–6.3 (foundation; membership and invitations; meetings, elections and lifecycle).** Not for real elections. Development uses fictional data only. The design and approval history live in [`docs/design/`](docs/design/README.md).
+
+## Increment 6.3: meetings, elections, rules and lifecycle
+
+| Area | Implemented |
+|---|---|
+| Meetings | Create, edit and list meetings (AGM, SGM, other); elections can be attached to a meeting |
+| Elections | Create and edit drafts (title, seats, voting window in the organisation's time zone, minimum one hour of voting) |
+| Rules | A validated rules document (selection limits, partial/blank ballots, eligibility categories, subscription statuses, optional membership cut-off, nomination requirements, tie-break procedure and its approved wording, quorum, early close, candidate order). Each save is a new numbered version; the database computes its SHA-256 fingerprint |
+| Lifecycle | The full state machine (draft → nomination → review → awaiting approval → scheduled → open → closed → counted → awaiting certification → certified, plus suspended, disputed and cancelled). Who may perform each transition, which need a reason and which need step-up are defined in `elections/lifecycle.py`. Transitions whose preconditions belong to later increments (opening, closing, counting, certification) exist but are not yet available |
+| Database enforcement (acceptance test 12) | Triggers allow only the defined transitions, require reasons where marked, lock seats, times, title and rules once an election is submitted for approval, allow the closing time to change only while suspended, keep later keys and digests write-once, forbid deleting elections or rule versions, and make cancelled final. Approving the rules requires someone other than their author. The transition history is written **by the database itself** (the app cannot insert, edit or delete it) |
+| Officials | "Invite an official" grants Returning Officer, Auditor or Administrator roles to people who are not members, using the same single-use invitation flow |
+| Tests | 177 |
 
 ## Increment 6.2: organisation, membership and invitations
 

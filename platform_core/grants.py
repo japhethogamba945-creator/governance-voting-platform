@@ -52,6 +52,13 @@ GRANTS: dict[str, dict[str, str]] = {
     "member": {"app_rw": "SELECT, INSERT, UPDATE"},
     "invitation": {"app_rw": "SELECT, INSERT, UPDATE (accepted_at, revoked_at)"},
     "member_import_batch": {"app_rw": "SELECT, INSERT, UPDATE (status, applied_at, rows)"},
+    # --- elections -----------------------------------------------------------
+    "meeting": {"app_rw": "SELECT, INSERT, UPDATE"},
+    "election": {"app_rw": "SELECT, INSERT, UPDATE"},
+    "election_rule_version": {"app_rw": "SELECT, INSERT, UPDATE (approved_by_id, approved_at)"},
+    "allowed_transition": {"app_rw": "SELECT"},
+    # Written only by the election_record_transition() trigger (SECURITY DEFINER).
+    "lifecycle_transition": {"app_rw": "SELECT"},
     # --- audit -------------------------------------------------------------
     "audit_event": {
         "app_rw": "SELECT, INSERT",

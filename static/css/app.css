@@ -40,3 +40,7 @@ th, td { text-align: left; padding: 8px; border-bottom: 1px solid var(--border);
 .row-error td { background: color-mix(in srgb, var(--danger) 8%, transparent); }
 .summary { display: flex; flex-wrap: wrap; gap: 16px; list-style: none; padding: 0; }
 form.grant { display: grid; gap: 4px; margin-top: 8px; }
+label.check { display: flex; gap: 8px; align-items: center; font-weight: 400; }
+label.check input { width: 20px; height: 20px; }
+ul[id] { list-style: none; padding-left: 0; }
+.history li { margin-bottom: 8px; }

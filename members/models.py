@@ -89,15 +89,20 @@ class Member(models.Model):
 
 
 class Invitation(models.Model):
-    """A single-use, expiring invitation to set up an account for a member.
+    """A single-use, expiring invitation to set up an account.
 
+    Either for a register ``member``, or for an ``official`` (a Returning
+    Officer, Auditor or administrator who need not be a member): then
+    ``member`` is empty and ``role`` names the role granted.
     Only the SHA-256 of the token is stored. Rows are visible outside the
     organisation's context only to a caller who presents the token (RLS).
     """
 
     id = models.UUIDField(primary_key=True, default=uuid.uuid4, editable=False)
     organisation = models.ForeignKey("tenancy.Organisation", on_delete=models.PROTECT)
-    member = models.ForeignKey(Member, on_delete=models.PROTECT, related_name="invitations")
+    member = models.ForeignKey(Member, on_delete=models.PROTECT, related_name="invitations",
+                               null=True, blank=True)
+    role = models.CharField(max_length=32, blank=True)  # official invitations only
     user = models.ForeignKey(settings.AUTH_USER_MODEL, on_delete=models.PROTECT, related_name="+")
     token_hash = models.CharField(max_length=64, unique=True)
     created_by = models.ForeignKey(settings.AUTH_USER_MODEL, on_delete=models.PROTECT,
@@ -116,6 +121,16 @@ class Invitation(models.Model):
             models.UniqueConstraint(
                 fields=["member"], condition=Q(accepted_at__isnull=True, revoked_at__isnull=True),
                 name="invitation_one_open_per_member"),
+            models.UniqueConstraint(
+                fields=["organisation", "user"],
+                condition=Q(member__isnull=True, accepted_at__isnull=True,
+                            revoked_at__isnull=True),
+                name="invitation_one_open_official_per_user"),
+            models.CheckConstraint(
+                condition=(Q(member__isnull=False, role="")
+                           | Q(member__isnull=True,
+                               role__in=["org_admin", "returning_officer", "auditor"])),
+                name="invitation_member_or_official_role"),
             models.CheckConstraint(condition=Q(expires_at__gt=models.F("created_at")),
                                    name="invitation_expiry_after_creation"),
             models.CheckConstraint(condition=Q(accepted_at__isnull=True)

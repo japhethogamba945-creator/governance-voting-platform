@@ -35,4 +35,14 @@ The sponsor approved the blueprint (Phase 1 gate) with the instruction: "use you
 | I6.2.3 | CSV import semantics | Matched on member number, **all or nothing**, never deactivates or deletes, re-validated against the current register at apply time. |
 | I6.2.4 | One account per email | Member emails are unique within an organisation. Two members sharing one email address (e.g. a household) cannot both have accounts; one must use a different email. |
 | I6.2.5 | Invitation tokens in logs | Tokens are redacted from Django and gunicorn logs (`platform_core/logredact.py`). Reverse proxies or CDNs in front of the app must apply the same redaction, or must not log paths: **deployment checklist item**. |
-| I6.2.6 | Officials who are not members | **Open.** Roles can only be granted to people who already belong to the organisation. An external Returning Officer would currently need a register entry. Proposed: an "invite official" flow in increment 6.3. |
+| I6.2.6 | Officials who are not members | **Resolved in 6.3**: "Invite an official" (see I6.3.4). |
+
+## Increment 6.3 decisions
+
+| ID | Decision | Resolution |
+|----|----------|------------|
+| I6.3.1 | Who writes the lifecycle history | A `SECURITY DEFINER` trigger writes `lifecycle_transition` whenever `election.state` changes. Actor and reason come from `app.user_id` and `app.transition_reason`. The application role cannot insert, update or delete history rows. |
+| I6.3.2 | Separation of duties for rules | Enforced **unconditionally** by a database CHECK: the person who approves a rule version cannot be the person who saved it. A single-person organisation therefore needs a second official (for example an invited independent Returning Officer). |
+| I6.3.3 | When configuration locks | Configuration and rules can be edited in draft, nomination and review. They lock at "awaiting approval" so that what the Returning Officer approves is exactly what was submitted. Returning the election to draft (with a reason) unlocks them. |
+| I6.3.4 | Officials who are not members | An invitation carries a role instead of a register entry. The role is granted at invitation time and becomes usable once the account is set up. |
+| I6.3.5 | Deferred to later increments | Key ceremony at scheduling (6.5); opening with the electorate snapshot (6.5); automatic closing (6.6); counting and certification (6.7); cancelling a suspended election with an administrator's co-signature (two-person rule, later increment). These transitions exist in the state machine but are marked unavailable. |

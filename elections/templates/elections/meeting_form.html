@@ -1,0 +1,7 @@
+{% extends "base.html" %}
+{% block title %}{% if creating %}Add meeting{% else %}Edit meeting{% endif %}{% endblock %}
+{% block content %}
+<p class="crumbs"><a href="{% url 'elections:meeting_list' org_slug=request.org.slug %}">Meetings</a></p>
+<h1>{% if creating %}Add meeting{% else %}Edit {{ meeting.title }}{% endif %}</h1>
+{% include "elections/_form.html" %}
+{% endblock %}

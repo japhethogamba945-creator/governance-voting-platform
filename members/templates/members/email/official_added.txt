@@ -1,0 +1,6 @@
+Hello{% if user.full_name %} {{ user.full_name }}{% endif %},
+
+{{ org.legal_name }} has appointed you {{ role_label }} on its voting and governance platform. Sign in with your existing account:
+{{ link }}
+
+If you did not expect this email, contact {{ org.legal_name }}.

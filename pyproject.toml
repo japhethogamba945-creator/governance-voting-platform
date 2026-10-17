@@ -48,4 +48,5 @@ ignore = [
 
 [tool.bandit]
 exclude_dirs = ["tests", ".venv", "accounts/migrations", "tenancy/migrations",
-                "audit/migrations", "platform_core/migrations", "members/migrations"]
+                "audit/migrations", "platform_core/migrations", "members/migrations",
+                "elections/migrations"]

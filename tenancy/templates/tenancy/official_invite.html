@@ -1,0 +1,17 @@
+{% extends "base.html" %}
+{% block title %}Invite an official{% endblock %}
+{% block content %}
+<p class="crumbs"><a href="{% url 'tenancy:roles' org_slug=request.org.slug %}">People and roles</a></p>
+<h1>Invite an official</h1>
+<p>Use this for officials who are not on the membership register, such as an independent Returning Officer or an external auditor. The role is granted now and can be used once they have set up their account.</p>
+<form method="post" novalidate>
+  {% csrf_token %}
+  {% for error in form.non_field_errors %}<p class="alert" role="alert">{{ error }}</p>{% endfor %}
+  {% for field in form %}
+    <label for="{{ field.id_for_label }}">{{ field.label }} *</label>
+    {{ field }}
+    {% for error in field.errors %}<p class="field-error">{{ error }}</p>{% endfor %}
+  {% endfor %}
+  <button type="submit">Send invitation</button>
+</form>
+{% endblock %}

@@ -45,6 +45,7 @@ INSTALLED_APPS = [
     "tenancy",
     "audit",
     "members",
+    "elections",
 ]
 
 MIDDLEWARE = [
