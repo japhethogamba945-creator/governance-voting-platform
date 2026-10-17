@@ -32,9 +32,14 @@ def home(request):
 @require_GET
 @requires(Perm.ORG_VIEW)
 def org_dashboard(request, org_slug):
+    from elections.models import Election
+
     role_labels = [Role(r).label for r in sorted(request.roles)]
+    taking_nominations = (Election.objects.filter(state="nomination")
+                          if Perm.NOMINATIONS_SUBMIT in request.permissions else [])
     return render(request, "tenancy/org_dashboard.html",
-                  {"org": request.org, "role_labels": role_labels})
+                  {"org": request.org, "role_labels": role_labels,
+                   "taking_nominations": taking_nominations})
 
 
 @require_GET

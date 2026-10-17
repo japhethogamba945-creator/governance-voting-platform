@@ -25,6 +25,10 @@
 <p>No rules yet.</p>
 {% endif %}
 
+{% if "nominations.view" in request.permissions and election.state != "draft" %}
+<p><a class="button secondary" href="{% url 'nominations:review' org_slug=request.org.slug election_id=election.id %}">Nominations and candidates</a></p>
+{% endif %}
+
 {% if actions %}
 <h2>Next steps</h2>
 <div class="actions">

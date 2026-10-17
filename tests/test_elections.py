@@ -11,10 +11,12 @@ from django.utils import timezone
 from audit.models import AuditEvent
 from elections import lifecycle, rules, services
 from elections.models import Election, ElectionRuleVersion, LifecycleTransition
+from nominations import services as nomination_services
+from nominations.models import Nomination
 from platform_core.db import acting_as, db_context
 from tenancy.models import RoleAssignment
 from tenancy.roles import Role
-from tests.factories import add_member, make_election, make_user, totp_now
+from tests.factories import add_member, make_election, make_member, make_user, totp_now
 from tests.helpers import login
 
 pytestmark = pytest.mark.django_db
@@ -47,15 +49,24 @@ def _set_reason(reason):
         cursor.execute("SELECT set_config('app.transition_reason', %s, true)", [reason])
 
 
-def _prepared(two_orgs, ro_user, *, approve=True, state=lifecycle.SCHEDULED):
+def _prepared(two_orgs, ro_user, *, state=lifecycle.SCHEDULED, rules_author=None):
     """An election taken through the service up to ``state`` (scheduled by default)."""
     a, _ = two_orgs
     election = make_election(a.org, a.admin)
+    nominee = make_member(a.org, f"C-{election.id.hex[:6]}")
     with transaction.atomic(), _in_org(a.org):
-        services.save_rules(election, valid_rules(), actor=a.admin)
+        services.save_rules(election, valid_rules(), actor=rules_author or a.admin)
         for target in (lifecycle.NOMINATION, lifecycle.REVIEW, lifecycle.READY,
                        lifecycle.SCHEDULED):
+            if target == lifecycle.READY:  # an approved candidate is needed from here on
+                nomination = Nomination.objects.get(election=election)
+                nomination_services.decide(nomination, approve=True, reason="", actor=ro_user)
             services.transition(election, target, actor=ro_user, roles={Role.RETURNING_OFFICER})
+            if target == lifecycle.NOMINATION:
+                election.refresh_from_db()
+                nomination_services.submit(election, submitter=nominee, nominee=nominee,
+                                           proposer=None, seconder=None, statement="",
+                                           actor=a.admin)
             if target == state:
                 break
     with acting_as(None):
@@ -134,11 +145,8 @@ def test_happy_path_to_scheduled_records_history_and_approval(two_orgs, ro):
 def test_rules_author_cannot_approve_them(two_orgs, ro):
     a, _ = two_orgs
     ro_user, _ = ro
-    election = make_election(a.org, a.admin)
+    election = _prepared(two_orgs, ro_user, state=lifecycle.READY, rules_author=ro_user)
     with transaction.atomic(), _in_org(a.org):
-        services.save_rules(election, valid_rules(), actor=ro_user)  # RO writes the rules
-        for target in (lifecycle.NOMINATION, lifecycle.REVIEW, lifecycle.READY):
-            services.transition(election, target, actor=ro_user, roles={Role.RETURNING_OFFICER})
         with pytest.raises(services.ElectionError, match="someone other than"):
             services.transition(election, lifecycle.SCHEDULED, actor=ro_user,
                                 roles={Role.RETURNING_OFFICER})
@@ -148,6 +156,7 @@ def test_role_checks(two_orgs, ro):
     a, _ = two_orgs
     election = make_election(a.org, a.admin)
     with transaction.atomic(), _in_org(a.org):
+        services.save_rules(election, valid_rules(), actor=a.admin)
         services.transition(election, lifecycle.NOMINATION, actor=a.admin,
                             roles={Role.ORG_ADMIN})  # admins may open nominations
         with pytest.raises(PermissionDenied):
@@ -174,17 +183,13 @@ def test_reason_required_and_unavailable_transitions(two_orgs, ro):
                                 roles={Role.RETURNING_OFFICER})
 
 
-def test_submitting_requires_rules_and_times(two_orgs, ro):
+def test_opening_nominations_requires_rules(two_orgs, ro):
     a, _ = two_orgs
     ro_user, _ = ro
     election = make_election(a.org, a.admin)
     with transaction.atomic(), _in_org(a.org):
-        services.transition(election, lifecycle.NOMINATION, actor=ro_user,
-                            roles={Role.RETURNING_OFFICER})
-        services.transition(election, lifecycle.REVIEW, actor=ro_user,
-                            roles={Role.RETURNING_OFFICER})
-        with pytest.raises(services.ElectionError, match="Set the election rules"):
-            services.transition(election, lifecycle.READY, actor=ro_user,
+        with pytest.raises(services.ElectionError, match="rules before opening nominations"):
+            services.transition(election, lifecycle.NOMINATION, actor=ro_user,
                                 roles={Role.RETURNING_OFFICER})
 
 
@@ -284,6 +289,7 @@ def test_history_cannot_be_written_or_altered_by_the_app(two_orgs):
     a, _ = two_orgs
     election = make_election(a.org, a.admin)
     with transaction.atomic(), _in_org(a.org):
+        services.save_rules(election, valid_rules(), actor=a.admin)
         services.transition(election, lifecycle.NOMINATION, actor=a.admin,
                             roles={Role.ORG_ADMIN})
         with pytest.raises(DatabaseError), transaction.atomic():
@@ -325,9 +331,26 @@ def test_ui_flow_create_rules_and_schedule(client, two_orgs, ro):
     page = client.get(election_url).content.decode()
     assert "Nominations open" in page and "25% of the electorate" in page
 
+    # A member nominates themself through the UI.
+    member_user, member_device = make_user("candidate@example.org")
+    add_member(a.org, member_user, Role.MEMBER)
+    make_member(a.org, "C-1", email=member_user.email, user=member_user,
+                full_name="Amani Candidate (fictional)")
+    member_client = client.__class__()
+    login(member_client, member_user, member_device)
+    assert "Taking nominations" in member_client.get(f"/o/{a.org.slug}/").content.decode()
+    r = member_client.post(f"{election_url}nominations/new/", {"who": "self",
+                                                              "statement": "I will serve."})
+    assert r.status_code == 302
+
     ro_client = client.__class__()
     login(ro_client, ro_user, ro_device)
     ro_client.post(f"{election_url}transition/review/")
+    with acting_as(None):
+        nomination_id = Nomination.all_objects.get(nominee__member_number="C-1").id
+    r = ro_client.post(f"/o/{a.org.slug}/nominations/{nomination_id}/decide/",
+                       {"decision": "approve"})
+    assert r.status_code == 302
     ro_client.post(f"{election_url}transition/ready_for_approval/")
     session = ro_client.session
     session["mfa_at"] = 0

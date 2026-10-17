@@ -30,21 +30,25 @@ class Perm(StrEnum):
     ELECTIONS_VIEW = "elections.view"
     ELECTIONS_EDIT = "elections.edit"  # create and configure while preparing
     MEETINGS_MANAGE = "meetings.manage"
+    NOMINATIONS_SUBMIT = "nominations.submit"  # members: nominate, confirm, withdraw
+    NOMINATIONS_VIEW = "nominations.view"
+    NOMINATIONS_REVIEW = "nominations.review"  # approve or reject
 
 
 ROLE_PERMISSIONS: dict[Role, frozenset[Perm]] = {
     Role.ORG_ADMIN: frozenset({
         Perm.ORG_VIEW, Perm.ORG_MANAGE_SETTINGS, Perm.MEMBERS_VIEW, Perm.MEMBERS_MANAGE,
         Perm.ROLES_GRANT, Perm.ROLES_VIEW, Perm.AUDIT_VIEW,
-        Perm.ELECTIONS_VIEW, Perm.ELECTIONS_EDIT, Perm.MEETINGS_MANAGE,
+        Perm.ELECTIONS_VIEW, Perm.ELECTIONS_EDIT, Perm.MEETINGS_MANAGE, Perm.NOMINATIONS_VIEW,
     }),
     Role.RETURNING_OFFICER: frozenset({Perm.ORG_VIEW, Perm.MEMBERS_VIEW, Perm.ROLES_VIEW,
                                        Perm.AUDIT_VIEW, Perm.ELECTIONS_VIEW,
-                                       Perm.ELECTIONS_EDIT, Perm.MEETINGS_MANAGE}),
+                                       Perm.ELECTIONS_EDIT, Perm.MEETINGS_MANAGE,
+                                       Perm.NOMINATIONS_VIEW, Perm.NOMINATIONS_REVIEW}),
     Role.AUDITOR: frozenset({Perm.ORG_VIEW, Perm.ROLES_VIEW, Perm.AUDIT_VIEW,
-                             Perm.ELECTIONS_VIEW}),
+                             Perm.ELECTIONS_VIEW, Perm.NOMINATIONS_VIEW}),
     Role.CANDIDATE: frozenset({Perm.ORG_VIEW}),
-    Role.MEMBER: frozenset({Perm.ORG_VIEW}),
+    Role.MEMBER: frozenset({Perm.ORG_VIEW, Perm.NOMINATIONS_SUBMIT}),
 }
 
 # Roles an organisation administrator may grant through the roles page.

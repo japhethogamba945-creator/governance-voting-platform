@@ -13,4 +13,5 @@ urlpatterns = [
     path("o/<slug:org_slug>/", include("tenancy.urls")),
     path("o/<slug:org_slug>/members/", include("members.urls")),
     path("o/<slug:org_slug>/elections/", include("elections.urls")),
+    path("o/<slug:org_slug>/", include("nominations.urls")),
 ]

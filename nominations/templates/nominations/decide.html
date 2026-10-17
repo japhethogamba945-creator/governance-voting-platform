@@ -1,0 +1,18 @@
+{% extends "base.html" %}
+{% block title %}Decide nomination{% endblock %}
+{% block content %}
+<p class="crumbs"><a href="{% url 'nominations:review' org_slug=request.org.slug election_id=nomination.election_id %}">Nominations</a></p>
+<h1>Nomination of {{ nomination.nominee.full_name }}</h1>
+<dl>
+  <dt>Member number</dt><dd>{{ nomination.nominee.member_number }}</dd>
+  <dt>Proposer</dt><dd>{{ nomination.proposer.full_name|default:"—" }}</dd>
+  <dt>Seconder</dt><dd>{{ nomination.seconder.full_name|default:"—" }}</dd>
+  <dt>Confirmations</dt><dd>{% if nomination.outstanding_confirmations %}Waiting for {{ nomination.outstanding_confirmations|join:", " }}{% else %}Complete{% endif %}</dd>
+  <dt>Eligible now</dt><dd>{% if eligibility.eligible %}Yes{% else %}No: {{ eligibility.reasons|join:"; " }}{% endif %}</dd>
+  <dt>Current status</dt><dd>{{ nomination.get_status_display }}</dd>
+</dl>
+{% if nomination.statement %}<h2>Statement</h2><blockquote>{{ nomination.statement|linebreaksbr }}</blockquote>{% endif %}
+{% if documents %}<h2>Documents</h2><ul>{% for d in documents %}<li><a href="{% url 'nominations:download_document' org_slug=request.org.slug document_id=d.id %}">{{ d.original_name }}</a> ({{ d.get_scan_status_display }})</li>{% endfor %}</ul>
+<p class="muted">Documents are not yet scanned for malware automatically. Open them with care.</p>{% endif %}
+{% include "elections/_form.html" %}
+{% endblock %}

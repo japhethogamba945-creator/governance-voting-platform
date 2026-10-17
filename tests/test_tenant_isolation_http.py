@@ -17,7 +17,17 @@ import uuid
 import pytest
 from django.urls import URLPattern, URLResolver, get_resolver, reverse
 
-from tests.factories import make_election, make_import_batch, make_meeting, make_member
+from tenancy.roles import Role
+from tests.factories import (
+    add_member,
+    make_document,
+    make_election,
+    make_import_batch,
+    make_meeting,
+    make_member,
+    make_nomination,
+    make_user,
+)
 from tests.helpers import login, without_csrf
 
 pytestmark = pytest.mark.django_db
@@ -28,6 +38,8 @@ OBJECT_FACTORIES = {
     "meeting_id": lambda fx: make_meeting(fx.org, fx.admin).id,
     "election_id": lambda fx: make_election(fx.org, fx.admin).id,
     "target": lambda fx: "nomination",  # a plain value, identical for both organisations
+    "nomination_id": lambda fx: make_nomination(fx.org, fx.admin).id,
+    "document_id": lambda fx: make_document(fx.org, fx.admin).id,
 }
 
 
@@ -69,11 +81,20 @@ def _objects(route, fx):
     return {p: OBJECT_FACTORIES[p](fx) for p in _params(route)}
 
 
+def _everything_in(org):
+    """A user holding every role in ``org``, with a register entry, so that each
+    control request passes permission checks and exercises the real lookup."""
+    user, device = make_user(f"all-roles-{uuid.uuid4().hex[:6]}@example.org")
+    add_member(org, user, *Role)
+    make_member(org, f"ALL-{uuid.uuid4().hex[:6]}", email=user.email, user=user)
+    return user, device
+
+
 @pytest.mark.parametrize("name,route", ORG_ROUTES)
 def test_member_of_a_gets_404_for_b(client, two_orgs, name, route):
     a, b = two_orgs
     a_objs, b_objs = _objects(route, a), _objects(route, b)
-    login(client, a.admin, a.admin_device)  # also satisfies step-up for the next 5 minutes
+    login(client, *_everything_in(a.org))  # also satisfies step-up for the next 5 minutes
     own = client.get(reverse(name, kwargs={"org_slug": a.org.slug, **a_objs}))
     assert own.status_code != 404, f"{name}: control request failed"
     for method in (client.get, client.post):

@@ -1,0 +1,63 @@
+{% extends "base.html" %}
+{% block title %}Nominations · {{ election.title }}{% endblock %}
+{% block content %}
+<p class="crumbs"><a href="{% url 'tenancy:dashboard' org_slug=request.org.slug %}">{{ request.org.legal_name }}</a></p>
+<h1>{{ election.title }}: nominations</h1>
+<p>{{ election.seats }} seat{{ election.seats|pluralize }}. Status: {{ election.state_label }}.</p>
+{% if eligibility %}
+  {% if eligibility.eligible %}<p class="note">You are eligible to be nominated and to propose or second others.</p>
+  {% else %}<p class="note">You are not eligible in this election: {{ eligibility.reasons|join:"; " }}.</p>{% endif %}
+{% endif %}
+{% if open %}
+<p class="actions"><a class="button" href="{% url 'nominations:nominate' org_slug=request.org.slug election_id=election.id %}">Submit a nomination</a></p>
+{% if rules %}<p class="muted">{% if rules.self_nomination %}Self-nominations are accepted.{% else %}Members must be nominated by a proposer.{% endif %}{% if rules.proposer_required %} A proposer is required.{% endif %}{% if rules.seconder_required %} A seconder is required.{% endif %}{% if rules.documents_required %} A supporting document is required.{% endif %}</p>{% endif %}
+{% else %}
+<p>Nominations are not open.</p>
+{% endif %}
+
+<h2>Nominations involving you</h2>
+<ul class="cards">
+{% for n, my_roles in items %}
+  <li class="card">
+    <strong>{{ n.nominee.full_name }}</strong>
+    <span class="muted">Status: {{ n.get_status_display }}{% if n.status_reason %} — {{ n.status_reason }}{% endif %} · you are {{ my_roles|join:", "|default:"the submitter" }}</span>
+    {% if n.status == "submitted" and n.outstanding_confirmations %}<p>Waiting for confirmation from: {{ n.outstanding_confirmations|join:", " }}.</p>{% endif %}
+    {% if n.statement %}<blockquote>{{ n.statement|linebreaksbr }}</blockquote>{% endif %}
+    <div class="actions">
+      {% if n.status == "submitted" and open %}
+        {% if "nominee" in my_roles and not n.nominee_consented_at or "proposer" in my_roles and not n.proposer_confirmed_at or "seconder" in my_roles and not n.seconder_confirmed_at %}
+        <form method="post" action="{% url 'nominations:confirm' org_slug=request.org.slug nomination_id=n.id %}" class="inline">{% csrf_token %}<button type="submit">Confirm</button></form>
+        {% endif %}
+        {% if my_roles %}
+        <form method="post" action="{% url 'nominations:decline' org_slug=request.org.slug nomination_id=n.id %}" class="inline">{% csrf_token %}<button type="submit" class="secondary">Decline</button></form>
+        {% endif %}
+      {% endif %}
+      {% if n.status == "submitted" or n.status == "approved" %}
+        {% if "nominee" in my_roles or n.submitted_by_id == member.id %}
+        <form method="post" action="{% url 'nominations:withdraw' org_slug=request.org.slug nomination_id=n.id %}" class="inline">{% csrf_token %}<button type="submit" class="danger">Withdraw</button></form>
+        {% endif %}
+      {% endif %}
+    </div>
+    {% if n.status == "submitted" and open %}
+      {% if "nominee" in my_roles %}
+      <form method="post" action="{% url 'nominations:statement' org_slug=request.org.slug nomination_id=n.id %}">
+        {% csrf_token %}
+        <label for="statement-{{ n.id }}">Edit statement</label>
+        <textarea id="statement-{{ n.id }}" name="statement" rows="4" maxlength="4000">{{ n.statement }}</textarea>
+        <button type="submit" class="secondary">Save statement</button>
+      </form>
+      {% endif %}
+      {% if "nominee" in my_roles or n.submitted_by_id == member.id %}
+      <form method="post" enctype="multipart/form-data" action="{% url 'nominations:add_document' org_slug=request.org.slug nomination_id=n.id %}">
+        {% csrf_token %}
+        <label for="doc-{{ n.id }}">{{ document_form.file.label }}</label>
+        <input type="file" id="doc-{{ n.id }}" name="file" accept="application/pdf,image/jpeg,image/png">
+        <button type="submit" class="secondary">Upload</button>
+      </form>
+      {% endif %}
+    {% endif %}
+    {% if n.documents.all %}<ul>{% for d in n.documents.all %}<li><a href="{% url 'nominations:download_document' org_slug=request.org.slug document_id=d.id %}">{{ d.original_name }}</a></li>{% endfor %}</ul>{% endif %}
+  </li>
+{% empty %}<li>None yet.</li>{% endfor %}
+</ul>
+{% endblock %}

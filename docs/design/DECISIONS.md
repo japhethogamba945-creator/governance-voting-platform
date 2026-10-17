@@ -46,3 +46,14 @@ The sponsor approved the blueprint (Phase 1 gate) with the instruction: "use you
 | I6.3.3 | When configuration locks | Configuration and rules can be edited in draft, nomination and review. They lock at "awaiting approval" so that what the Returning Officer approves is exactly what was submitted. Returning the election to draft (with a reason) unlocks them. |
 | I6.3.4 | Officials who are not members | An invitation carries a role instead of a register entry. The role is granted at invitation time and becomes usable once the account is set up. |
 | I6.3.5 | Deferred to later increments | Key ceremony at scheduling (6.5); opening with the electorate snapshot (6.5); automatic closing (6.6); counting and certification (6.7); cancelling a suspended election with an administrator's co-signature (two-person rule, later increment). These transitions exist in the state machine but are marked unavailable. |
+
+## Increment 6.4 decisions
+
+| ID | Decision | Resolution |
+|----|----------|------------|
+| I6.4.1 | Who may be nominated, propose or second | Only members who satisfy the election's eligibility rules (the same rules that will define the electorate). Eligibility is re-checked when a nomination is approved. **[CONFIRM against pilot governing documents]** |
+| I6.4.2 | Nominating someone else | The submitter becomes the proposer, and the nominee must consent in the app. Everyone named must confirm before approval. |
+| I6.4.3 | When the candidate list freezes | Candidates can change only during review. The ballot order is fixed (alphabetically or by a cryptographic shuffle) at "submit for approval", and the order and its digest are audited. |
+| I6.4.4 | Malware scanning of nomination documents | **Not yet implemented.** Documents are marked "not scanned" and the reviewer is told so. Mitigations: the type is checked from the content, files are stored under random names outside any served directory, downloads are attachment-only with a sandboxing CSP, and there are size and count limits. A scanner (for example ClamAV) should be added before the pilot, and documents should be served from a separate download domain (threat T15): **deployment checklist item**. |
+| I6.4.5 | Uncontested elections | Allowed (candidates ≤ seats) and flagged in the audit event. Whether candidates are then declared elected without a vote is a governance question for the pilot's rules, not decided by the system. |
+| I6.4.6 | Member numbers on the nomination form | Members identify a nominee, proposer or seconder by member number. An error reveals only that no active member has that number. |

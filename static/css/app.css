@@ -44,3 +44,5 @@ label.check { display: flex; gap: 8px; align-items: center; font-weight: 400; }
 label.check input { width: 20px; height: 20px; }
 ul[id] { list-style: none; padding-left: 0; }
 .history li { margin-bottom: 8px; }
+blockquote { margin: 8px 0; padding: 8px 12px; border-left: 3px solid var(--border); }
+input[type=radio] { width: 20px; height: 20px; }

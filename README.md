@@ -2,7 +2,20 @@
 
 A multi-organisation voting and governance platform for clubs and membership organisations: membership registers, nominations, secret-ballot remote elections, counting, certification and audit.
 
-> **Status: prototype, increments 6.1–6.3 (foundation; membership and invitations; meetings, elections and lifecycle).** Not for real elections. Development uses fictional data only. The design and approval history live in [`docs/design/`](docs/design/README.md).
+> **Status: prototype, increments 6.1–6.4 (foundation; membership and invitations; meetings, elections and lifecycle; nominations).** Not for real elections. Development uses fictional data only. The design and approval history live in [`docs/design/`](docs/design/README.md).
+
+## Increment 6.4: candidate nominations
+
+| Area | Implemented |
+|---|---|
+| Eligibility | One function (`elections/eligibility.py`) applies an election's eligibility rules (active status, category, subscription, optional membership cut-off) with plain-language reasons. It will also build the electorate snapshot in 6.5 |
+| Submitting | Members self-nominate (if the rules allow) or nominate another member, becoming their proposer. Proposer and seconder are required when the rules say so. Nominee, proposer and seconder must be different eligible members. One live nomination per member per election; a withdrawn one may be resubmitted |
+| Confirming | Everyone named who did not submit the nomination is emailed and must confirm in the app; anyone named may decline (which withdraws it). The nominee or submitter may withdraw until the candidate list is fixed |
+| Documents | Up to 3 PDF/JPEG/PNG files of at most 5 MB. The type comes from the file's content, never the browser's claim. Stored privately under random names (never served directly) with SHA-256; downloadable only by officials and the nominee/submitter, as an attachment with a sandboxing CSP |
+| Review | The Returning Officer approves or rejects (with a reason) during review, with step-up. Approval re-checks confirmations, required documents and current eligibility. An approval can be reversed during review. Approved nominations become candidates and receive the election-scoped Candidate role |
+| Candidate list | Submitting for approval requires every nomination decided and at least one candidate, then fixes the ballot order (alphabetical, or random using a cryptographic generator) and audits the order with a digest |
+| Database enforcement | Nominations can only be submitted, edited or confirmed while nominations are open and decided only in review; who is nominated and by whom never changes; withdrawn is final; nothing is deleted. Candidates change only during review and need an approved nomination of the same election. Documents change only while nominations are open |
+| Tests | 217, including the cross-tenant matrix run by a user holding every role so each route's real lookup is exercised |
 
 ## Increment 6.3: meetings, elections, rules and lifecycle
 

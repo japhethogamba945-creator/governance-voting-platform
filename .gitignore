@@ -5,3 +5,4 @@ staticfiles/
 .env
 .pytest_cache/
 .ruff_cache/
+private_media/

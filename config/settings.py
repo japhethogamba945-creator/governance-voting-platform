@@ -46,6 +46,7 @@ INSTALLED_APPS = [
     "audit",
     "members",
     "elections",
+    "nominations",
 ]
 
 MIDDLEWARE = [
@@ -194,9 +195,18 @@ EMAIL_USE_TLS = env_bool("EMAIL_USE_TLS", True)
 DEFAULT_FROM_EMAIL = env("DEFAULT_FROM_EMAIL", "no-reply@localhost")
 INVITATION_TTL_DAYS = env_int("INVITATION_TTL_DAYS", 7)
 
+# Private files (nomination documents). Never served by the web server or a CDN:
+# only through permission-checked download views. Production uses object storage.
+PRIVATE_MEDIA_ROOT = Path(env("PRIVATE_MEDIA_ROOT", str(BASE_DIR / "private_media")))
+STORAGES = {
+    "default": {"BACKEND": "django.core.files.storage.FileSystemStorage",
+                "OPTIONS": {"location": str(PRIVATE_MEDIA_ROOT), "base_url": None}},
+    "staticfiles": {"BACKEND": "django.contrib.staticfiles.storage.StaticFilesStorage"},
+}
+
 # Uploads (CSV import) are read in memory and capped well below this.
 DATA_UPLOAD_MAX_MEMORY_SIZE = 3 * 1024 * 1024
-FILE_UPLOAD_MAX_MEMORY_SIZE = 3 * 1024 * 1024
+FILE_UPLOAD_MAX_MEMORY_SIZE = 6 * 1024 * 1024  # nomination documents up to 5 MB
 
 OTP_TOTP_ISSUER = env("OTP_TOTP_ISSUER", "Governance Voting")
 

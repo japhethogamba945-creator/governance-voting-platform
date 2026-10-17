@@ -102,3 +102,58 @@ def make_election(org: Organisation, created_by, *, seats: int = 3, title: str =
         return Election.all_objects.create(
             organisation=org, title=title, seats=seats, created_by=created_by,
             opens_at=opens, closes_at=opens + timedelta(days=2), **extra)
+
+
+def valid_rules(seats: int = 3, **nomination):
+    from elections import rules
+
+    r = rules.default_rules(seats, ("full", "life"))
+    r["tie_procedure"]["description"] = "Lots are drawn by the Returning Officer in public."
+    r["nomination"].update(nomination)
+    return r
+
+
+def open_nominations(election, created_by, rules: dict | None = None):
+    """Give a draft election rules and move it to 'nomination' (admin login, no app checks)."""
+    from elections.models import Election, ElectionRuleVersion
+
+    with acting_as(None):
+        version = ElectionRuleVersion.all_objects.create(
+            organisation_id=election.organisation_id, election=election, version=1,
+            rules=rules or valid_rules(election.seats), created_by=created_by)
+        Election.all_objects.filter(pk=election.pk).update(current_rule_version=version)
+        Election.all_objects.filter(pk=election.pk).update(state="nomination")
+        return Election.all_objects.select_related("current_rule_version").get(pk=election.pk)
+
+
+def make_nomination(org: Organisation, created_by, *, election=None, nominee=None):
+    import uuid as _uuid
+
+    from nominations.models import Nomination
+
+    election = election or open_nominations(make_election(org, created_by), created_by)
+    nominee = nominee or make_member(org, f"N-{_uuid.uuid4().hex[:8]}")
+    with acting_as(None):
+        from django.utils import timezone
+        return Nomination.all_objects.create(
+            organisation=org, election=election, nominee=nominee, submitted_by=nominee,
+            nominee_consented_at=timezone.now())
+
+
+def make_document(org: Organisation, created_by, *, nomination=None):
+    import hashlib
+    import uuid as _uuid
+
+    from django.core.files.base import ContentFile
+    from django.core.files.storage import default_storage
+
+    from nominations.models import NominationDocument
+
+    nomination = nomination or make_nomination(org, created_by)
+    data = b"%PDF-1.4 fictional test document"
+    name = default_storage.save(f"nominations/test/{_uuid.uuid4().hex}.pdf", ContentFile(data))
+    with acting_as(None):
+        return NominationDocument.all_objects.create(
+            organisation=org, nomination=nomination, storage_name=name,
+            original_name="statement.pdf", sha256=hashlib.sha256(data).hexdigest(),
+            mime="application/pdf", size_bytes=len(data), uploaded_by=created_by)
