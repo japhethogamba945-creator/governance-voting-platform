@@ -49,3 +49,6 @@ input[type=radio] { width: 20px; height: 20px; }
 .backup-code code { display: block; font-size: 20px; letter-spacing: 1px; padding: 16px; border: 2px dashed var(--fg); word-break: break-all; }
 fieldset { border: 1px solid var(--border); border-radius: 6px; margin-top: 16px; }
 @media print { .site-header, .button { display: none; } }
+label.candidate { align-items: flex-start; padding: 12px 0; border-bottom: 1px solid var(--border); }
+label.candidate input { margin-top: 4px; flex: none; }
+.statement { display: block; margin-top: 4px; }

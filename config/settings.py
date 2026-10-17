@@ -49,6 +49,7 @@ INSTALLED_APPS = [
     "nominations",
     "keys",
     "electorate",
+    "voting",
 ]
 
 MIDDLEWARE = [

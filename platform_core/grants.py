@@ -54,26 +54,35 @@ GRANTS: dict[str, dict[str, str]] = {
     "member_import_batch": {"app_rw": "SELECT, INSERT, UPDATE (status, applied_at, rows)"},
     # --- elections -----------------------------------------------------------
     "meeting": {"app_rw": "SELECT, INSERT, UPDATE"},
-    "election": {"app_rw": "SELECT, INSERT, UPDATE"},
-    "election_rule_version": {"app_rw": "SELECT, INSERT, UPDATE (approved_by_id, approved_at)"},
+    # app_voting: UPDATE (id) only so that SELECT ... FOR SHARE is permitted (the
+    # guard trigger forbids changing the id); it never updates elections.
+    "election": {"app_rw": "SELECT, INSERT, UPDATE", "app_voting": "SELECT, UPDATE (id)"},
+    "election_rule_version": {"app_rw": "SELECT, INSERT, UPDATE (approved_by_id, approved_at)",
+                              "app_voting": "SELECT"},
     "allowed_transition": {"app_rw": "SELECT"},
     # Written only by the election_record_transition() trigger (SECURITY DEFINER).
     "lifecycle_transition": {"app_rw": "SELECT"},
     # --- nominations ---------------------------------------------------------
     "nomination": {"app_rw": "SELECT, INSERT, UPDATE"},
     "nomination_document": {"app_rw": "SELECT, INSERT, DELETE, UPDATE (scan_status)"},
-    "candidate": {"app_rw": "SELECT, INSERT, UPDATE, DELETE"},
+    "candidate": {"app_rw": "SELECT, INSERT, UPDATE, DELETE", "app_voting": "SELECT"},
     # --- keys and electorate -------------------------------------------------
     "keyholder_key": {"app_rw": "SELECT, INSERT, "
                                 "UPDATE (salt, encrypted_private_key, kdf, retired_at)"},
     "key_share": {"app_rw": "SELECT, INSERT"},
     "electorate_entry": {"app_rw": "SELECT, INSERT"},
-    # Casting (issued -> consumed) moves to the dedicated app_voting role in 6.6.
-    "entitlement": {"app_rw": "SELECT, INSERT, UPDATE (status, consumed_on, idempotency_hash, "
-                              "revoked_reason, revoked_by_id)"},
+    # app_rw may revoke; only app_voting can consume (it alone may set the
+    # consumed_on/idempotency_hash columns the consumed state requires).
+    "entitlement": {"app_rw": "SELECT, INSERT, UPDATE (status, revoked_reason, revoked_by_id)",
+                    "app_voting": "SELECT, UPDATE (status, consumed_on, idempotency_hash)"},
+    # --- the ballot box (increment 6.6) ---------------------------------------
+    # Insert-only for app_voting; the web role has no access at all. app_tally
+    # (counting, 6.7) will get SELECT.
+    "ballot": {"app_voting": "INSERT"},
     # --- audit -------------------------------------------------------------
     "audit_event": {
         "app_rw": "SELECT, INSERT",
+        "app_voting": "INSERT",
         "app_platform": "SELECT, INSERT",
         "app_audit": "SELECT, UPDATE (seq, prev_hash, hash)",
     },

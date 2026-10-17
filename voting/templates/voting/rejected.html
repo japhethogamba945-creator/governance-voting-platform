@@ -1,0 +1,7 @@
+{% extends "base.html" %}
+{% block title %}Ballot not recorded{% endblock %}
+{% block content %}
+<h1>Your ballot was <em>not</em> recorded</h1>
+<p class="alert" role="alert">{{ reason }}</p>
+<p><a class="button" href="{% url 'voting:ballot' org_slug=request.org.slug election_id=election.id %}">Back to the ballot</a></p>
+{% endblock %}

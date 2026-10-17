@@ -1,0 +1,12 @@
+{% extends "base.html" %}
+{% block title %}Marked register · {{ election.title }}{% endblock %}
+{% block content %}
+<p class="crumbs"><a href="{% url 'elections:detail' org_slug=request.org.slug election_id=election.id %}">{{ election.title }}</a></p>
+<h1>Marked register</h1>
+<p class="note">Shows <strong>who</strong> has voted, never how. Visible to the Returning Officer and Auditor only.</p>
+<p>{{ voted }} of {{ rows|length }} have voted.</p>
+<table>
+  <thead><tr><th>Member</th><th>Number</th><th>Voted</th></tr></thead>
+  <tbody>{% for r in rows %}<tr><td>{{ r.member.full_name }}</td><td>{{ r.member.member_number }}</td><td>{% if r.status == "consumed" %}Yes ({{ r.consumed_on|date:"j M" }}){% elif r.status == "issued" %}No{% else %}{{ r.get_status_display }}{% endif %}</td></tr>{% endfor %}</tbody>
+</table>
+{% endblock %}

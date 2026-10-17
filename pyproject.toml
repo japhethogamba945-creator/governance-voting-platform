@@ -51,4 +51,4 @@ ignore = [
 exclude_dirs = ["tests", ".venv", "accounts/migrations", "tenancy/migrations",
                 "audit/migrations", "platform_core/migrations", "members/migrations",
                 "elections/migrations", "nominations/migrations", "keys/migrations",
-                "electorate/migrations"]
+                "electorate/migrations", "voting/migrations"]

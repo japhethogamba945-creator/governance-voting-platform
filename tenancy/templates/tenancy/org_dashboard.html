@@ -10,6 +10,13 @@
   {% if "keys.hold" in request.permissions %}<li class="card"><a href="{% url 'keys:passphrase' org_slug=org.slug %}">Keyholder passphrase</a></li>{% endif %}
   {% if "org.manage_settings" in request.permissions %}<li class="card"><a href="{% url 'tenancy:settings' org_slug=org.slug %}">Organisation settings</a></li>{% endif %}
 </ul>
+{% if voting %}
+<h2>Voting open</h2>
+<ul class="cards">{% for v in voting %}<li class="card"><strong>{{ v.election.title }}</strong>
+  <span class="muted">Closes {{ v.election.closes_at|date:"j M Y, H:i" }}</span>
+  {% if v.voted %}<span>✅ Your ballot was accepted.</span>{% else %}<a class="button" href="{% url 'voting:ballot' org_slug=org.slug election_id=v.election.id %}">Vote</a>{% endif %}
+</li>{% endfor %}</ul>
+{% endif %}
 {% if taking_nominations %}
 <h2>Taking nominations</h2>
 <ul class="cards">{% for e in taking_nominations %}<li class="card"><a href="{% url 'nominations:mine' org_slug=org.slug election_id=e.id %}">{{ e.title }}</a> <span class="muted">{{ e.seats }} seat{{ e.seats|pluralize }}</span></li>{% endfor %}</ul>

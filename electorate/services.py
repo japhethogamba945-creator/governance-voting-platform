@@ -60,17 +60,15 @@ def lifecycle_hook(election, target: str, actor, context: dict) -> None:
         context["electorate_size"] = build_electorate(election)
 
 
-def open_due_elections(now=None) -> list[tuple[str, str]]:
-    """Open every scheduled election whose opening time has passed.
+def _run_due(state: str, time_field: str, target: str, label, now) -> list[tuple[str, str]]:
+    """Apply a system transition to every election in ``state`` whose ``time_field`` passed.
 
-    Each election is opened in its own transaction and organisation context, so
-    one failure (for example an empty electorate) does not stop the others; the
-    failure is audited and the election stays scheduled for the Returning
-    Officer to act on. Returns (election_id, outcome) pairs.
+    Each election runs in its own transaction and organisation context, so one
+    failure does not stop the others; failures are audited and the election is
+    left as it was for the Returning Officer to act on.
     """
-    now = now or timezone.now()
     with transaction.atomic(), scheduler_scope():
-        due = list(Election.all_objects.filter(state=lifecycle.SCHEDULED, opens_at__lte=now)
+        due = list(Election.all_objects.filter(state=state, **{f"{time_field}__lte": now})
                    .values_list("id", "organisation_id"))
     results = []
     for election_id, org_id in due:
@@ -79,12 +77,31 @@ def open_due_elections(now=None) -> list[tuple[str, str]]:
                 election = (Election.objects.select_related("current_rule_version",
                                                             "organisation").get(pk=election_id))
                 context: dict = {}
-                system_transition(election, lifecycle.OPEN, context=context)
-            results.append((str(election_id), f"opened ({context['electorate_size']} voters)"))
+                system_transition(election, target, context=context)
+            results.append((str(election_id), label(context)))
         except ElectionError as exc:
             with transaction.atomic(), db_context(org_id=org_id):
-                audit("election.open_failed", organisation_id=org_id, object_type="election",
-                      object_id=election_id, details={"error": str(exc)[:500]})
-            log.warning("Could not open election %s: %s", election_id, exc)
+                audit(f"election.{target}_failed", organisation_id=org_id,
+                      object_type="election", object_id=election_id,
+                      details={"error": str(exc)[:500]})
+            log.warning("Could not move election %s to %s: %s", election_id, target, exc)
             results.append((str(election_id), f"failed: {exc}"))
     return results
+
+
+def close_due_elections(now=None) -> list[tuple[str, str]]:
+    """Close every open election whose closing time has passed (seals the ballot box)."""
+    return _run_due(lifecycle.OPEN, "closes_at", lifecycle.CLOSED,
+                    lambda c: f"closed ({c['ballots']} ballots)", now or timezone.now())
+
+
+def open_due_elections(now=None) -> list[tuple[str, str]]:
+    """Open every scheduled election whose opening time has passed.
+
+    Each election is opened in its own transaction and organisation context, so
+    one failure (for example an empty electorate) does not stop the others; the
+    failure is audited and the election stays scheduled for the Returning
+    Officer to act on. Returns (election_id, outcome) pairs.
+    """
+    return _run_due(lifecycle.SCHEDULED, "opens_at", lifecycle.OPEN,
+                    lambda c: f"opened ({c['electorate_size']} voters)", now or timezone.now())
