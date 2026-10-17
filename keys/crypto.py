@@ -12,7 +12,13 @@ docs/design/DECISIONS.md I6.5.1.
   holder's pieces are independent uniform random bytes and reveal nothing.
 * Each holder's pieces are encrypted to that holder's own keyholder public key
   (sealed box). The backup holder's pieces are encrypted under a random 256-bit
-  backup secret that is shown once, to be printed and sealed offline.
+  backup secret that is shown once, to be printed and sealed offline. An X25519
+  key pair is also derived from the backup secret, so pieces can be sealed *to*
+  the backup holder during counting.
+* Counting (increment 6.7, DECISIONS I6.7.1): the first of two holders opens
+  their bundle and seals, for every other holder, the one piece they share to
+  that holder's public key ("staging"). The second holder opens their own bundle
+  and the piece staged for them, and only then does the key exist, in memory.
 
 Python cannot reliably wipe memory; key material is kept in local variables only
 and never logged or written unencrypted (residual risk R3).
@@ -24,7 +30,9 @@ import itertools
 import json
 import secrets
 
+import nacl.encoding
 import nacl.exceptions
+import nacl.hash
 import nacl.pwhash
 import nacl.secret
 import nacl.utils
@@ -132,10 +140,19 @@ def ceremony(holder_public_keys: list[bytes]) -> dict:
               for pk, bundle in zip(holder_public_keys, bundles[:-1], strict=True)]
     backup_secret = nacl.utils.random(nacl.secret.SecretBox.KEY_SIZE)
     backup = nacl.secret.SecretBox(backup_secret).encrypt(json.dumps(bundles[-1]).encode())
+    backup_public = bytes(backup_private_key(backup_secret).public_key)
     del secret, election_key, bundles
     return {"public_key": public, "fingerprint": fingerprint(public),
             "sealed_bundles": [bytes(s) for s in sealed], "backup_bundle": bytes(backup),
+            "backup_public_key": backup_public,
             "backup_secret": format_backup_secret(backup_secret)}
+
+
+def backup_private_key(backup_secret: bytes) -> PrivateKey:
+    """The X25519 key derived from the backup secret (a separate key, never the secret itself)."""
+    seed = nacl.hash.blake2b(backup_secret, digest_size=KEY_BYTES, person=b"gvp-backup-kx-v1",
+                             encoder=nacl.encoding.RawEncoder)
+    return PrivateKey(seed)
 
 
 def format_backup_secret(raw: bytes) -> str:
@@ -174,3 +191,38 @@ def rebuild_private_key(bundle_a: list, bundle_b: list, expected_public_key: byt
     if bytes(key.public_key) != expected_public_key:
         raise KeyError_("The rebuilt key does not match the election's public key.")
     return key
+
+
+# --- counting: two holders in separate sessions ---------------------------------
+
+def stage_pieces(own_index: int, bundle: list, recipients: dict[int, bytes]) -> dict[str, str]:
+    """Seal this holder's piece for each pair it shares with another holder to that holder.
+
+    ``own_index`` and the keys of ``recipients`` are 1-based share indices;
+    ``recipients`` maps each other holder to their public key. Returns
+    ``{str(index): base64(sealed piece)}``. No single sealed piece reveals the key:
+    opening one needs the recipient's own private key, and combining it needs the
+    recipient's own bundle too.
+    """
+    own = own_index - 1
+    staged: dict[str, str] = {}
+    for i, j, piece in bundle:
+        if own not in (i, j):
+            raise KeyError_("This share does not belong to that holder.")
+        other = j if i == own else i
+        public = recipients.get(other + 1)
+        if public is None:
+            continue
+        sealed = SealedBox(PublicKey(public)).encrypt(json.dumps([i, j, piece]).encode())
+        staged[str(other + 1)] = base64.b64encode(bytes(sealed)).decode()
+    return staged
+
+
+def rebuild_from_staged(own_bundle: list, own_private_key: PrivateKey, staged_piece: bytes,
+                        expected_public_key: bytes) -> PrivateKey:
+    """Second holder: combine their own bundle with the piece the first holder staged for them."""
+    try:
+        piece = json.loads(SealedBox(own_private_key).decrypt(staged_piece))
+    except nacl.exceptions.CryptoError as exc:
+        raise KeyError_("The other keyholder's contribution was not made for you.") from exc
+    return rebuild_private_key(own_bundle, [piece], expected_public_key)

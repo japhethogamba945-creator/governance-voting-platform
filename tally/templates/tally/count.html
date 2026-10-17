@@ -1,0 +1,94 @@
+{% extends "base.html" %}
+{% block title %}Counting · {{ election.title }}{% endblock %}
+{% block content %}
+<p class="crumbs"><a href="{% url 'elections:detail' org_slug=request.org.slug election_id=election.id %}">{{ election.title }}</a></p>
+<h1>Counting and results</h1>
+<p><strong>Status:</strong> {{ election.state_label }}</p>
+
+{% if waiting %}
+<section class="note">
+  <h2>{% if waiting.kind == "recount" %}Recount{% else %}Count{% endif %} waiting for keyholders</h2>
+  <p>Started {{ waiting.requested_at|date:"j M Y, H:i" }} by {{ waiting.requested_by.full_name|default:waiting.requested_by.email }}.{% if waiting.reason %} Reason: {{ waiting.reason }}{% endif %}</p>
+  <p>Two different people must each provide a share, in their own session. The count runs as soon as the second share is provided.</p>
+  <ul>
+    {% for s in key_shares %}
+    <li>Share {{ s.share_index }}: {{ s.holder_label }}
+      {% for c in staged %}{% if c.share_index == s.share_index %} — <strong>provided</strong> by {{ c.contributed_by.full_name|default:c.contributed_by.email }} (valid until {{ c.expires_at|date:"H:i" }}){% endif %}{% endfor %}
+    </li>
+    {% endfor %}
+  </ul>
+  {% if can_hold and not already_contributed %}
+  <form method="post" action="{% url 'tally:contribute' org_slug=request.org.slug election_id=election.id %}" autocomplete="off">
+    {% csrf_token %}
+    {% if my_share %}
+    <p>You hold share {{ my_share }}.</p>
+    <label for="id_passphrase">Your keyholder passphrase</label>
+    <input type="password" name="passphrase" id="id_passphrase" autocomplete="off">
+    {% else %}
+    <p class="muted">You do not hold a share for this election. If a keyholder is unavailable, you can enter the sealed backup code.</p>
+    {% endif %}
+    <details{% if not my_share %} open{% endif %}>
+      <summary>Use the sealed backup code instead</summary>
+      <label for="id_backup_code">Backup code</label>
+      <input type="text" name="backup_code" id="id_backup_code" autocomplete="off" spellcheck="false">
+      <p class="help">Leave the passphrase empty when using the backup code.</p>
+    </details>
+    <button type="submit">Provide share</button>
+  </form>
+  <p class="muted">A provided share is kept, sealed to the other keyholders, for {{ ttl_minutes }} minutes and then deleted.</p>
+  {% elif already_contributed %}
+  <p>You have provided your share. Waiting for a second person.</p>
+  {% endif %}
+  {% if can_run %}<p><a href="{% url 'tally:cancel' org_slug=request.org.slug election_id=election.id %}">Cancel this count</a></p>{% endif %}
+</section>
+{% elif can_start %}
+<p><a class="button" href="{% url 'tally:start' org_slug=request.org.slug election_id=election.id %}">{% if recount %}Order a recount{% else %}Start the count{% endif %}</a></p>
+{% elif election.state == "closed" and not can_run %}
+<p>Waiting for the Returning Officer to start the count.</p>
+{% endif %}
+
+{% if tally %}
+<h2>Count version {{ tally.version }}{% if tally.kind == "recount" %} (recount){% endif %}</h2>
+<p class="muted">Counted {{ tally.run_at|date:"j M Y, H:i" }}.{% if tally.reason %} Reason: {{ tally.reason }}{% endif %}</p>
+<table>
+  <thead><tr><th>Rank</th><th>Candidate</th><th>Votes</th><th>Outcome</th></tr></thead>
+  <tbody>
+  {% for row in lines %}
+  <tr><td>{{ row.line.rank }}</td><td>{{ row.line.candidate.display_name }}</td><td>{{ row.line.votes }}</td>
+    <td>{% if row.final == "elected" %}Elected{% elif row.final == "not_elected" %}Not elected{% else %}<strong>Tied</strong>{% endif %}{% if row.line.outcome == "tied_pending" and row.final != "tied_pending" %} (by tie procedure){% endif %}</td></tr>
+  {% endfor %}
+  </tbody>
+</table>
+<h3>Reconciliation</h3>
+<ul class="checklist">
+  <li>{% if tally.reconciliation.ballot_box_matches_seal %}✓{% else %}✗{% endif %} Ballot box matches the seal made at close</li>
+  <li>{% if tally.reconciliation.ballots_equal_voters_marked %}✓{% else %}✗{% endif %} Ballots ({{ tally.ballots_total }}) equal members marked as having voted ({{ tally.entitlements_consumed }})</li>
+  <li>{% if tally.reconciliation.all_ballots_valid %}✓{% else %}✗{% endif %} Every ballot valid ({{ tally.ballots_invalid }} invalid; {{ tally.ballots_blank }} blank)</li>
+  <li>{% if tally.reconciliation.voters_within_electorate %}✓{% else %}✗{% endif %} Voters within the electorate ({{ tally.electorate_size }})</li>
+</ul>
+{% if not tally.reconciliation_ok %}<p class="alert" role="alert">Reconciliation failed. This count cannot be certified. Follow the incident procedure.</p>{% endif %}
+{% if tally.has_ties %}
+  {% if resolution %}
+  <p>Tie resolved by {{ resolution.procedure_description }} — recorded {{ resolution.recorded_at|date:"j M Y, H:i" }}: {{ resolution.evidence }}</p>
+  {% elif can_run and election.state == "counted" %}
+  <p class="alert">Candidates are tied for the last seat(s). <a href="{% url 'tally:tie' org_slug=request.org.slug election_id=election.id %}">Record the outcome of the tie procedure</a>.</p>
+  {% endif %}
+{% endif %}
+{% if election.state == "awaiting_certification" %}
+  {% if blockers %}<ul>{% for b in blockers %}<li class="alert">{{ b }}</li>{% endfor %}</ul>
+  {% elif can_run %}<p><a class="button" href="{% url 'tally:certify' org_slug=request.org.slug election_id=election.id %}">Review and certify</a></p>{% endif %}
+{% endif %}
+{% if tallies|length > 1 %}
+<h3>All counts</h3>
+<ul>{% for t in tallies %}<li>Version {{ t.version }} ({{ t.get_kind_display }}) · {{ t.run_at|date:"j M Y, H:i" }} · {{ t.ballots_total }} ballots · {% if t.reconciliation_ok %}reconciled{% else %}reconciliation failed{% endif %}{% if t.reason %} · {{ t.reason }}{% endif %}</li>{% endfor %}</ul>
+{% endif %}
+{% endif %}
+
+{% if certification %}
+<h2>Certified result</h2>
+<p>Certified {{ certification.certified_at|date:"j M Y, H:i" }}. Fingerprint (SHA-256): <code>{{ certification.content_sha256 }}</code></p>
+{% if certification.published_at %}<p>Published to members {{ certification.published_at|date:"j M Y, H:i" }}. <a href="{% url 'tally:results' org_slug=request.org.slug election_id=election.id %}">View results</a></p>
+{% elif can_publish %}<p><a class="button" href="{% url 'tally:publish' org_slug=request.org.slug election_id=election.id %}">Publish to members</a></p>
+{% else %}<p class="muted">Not yet published.</p>{% endif %}
+{% endif %}
+{% endblock %}

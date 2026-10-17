@@ -47,9 +47,18 @@ def org_dashboard(request, org_slug):
                             .select_related("election")):
             voting.append({"election": entitlement.election,
                            "voted": entitlement.status == Entitlement.Status.CONSUMED})
+    from django.db.models import Exists, OuterRef
+
+    from tally.models import Certification
+
+    published = Certification.objects.filter(election=OuterRef("pk"), published_at__isnull=False,
+                                             superseded_at__isnull=True)
+    closed = (Election.objects.exclude(ballot_set_digest="")
+              .annotate(published=Exists(published)).order_by("-closes_at")[:10])
     return render(request, "tenancy/org_dashboard.html",
                   {"org": request.org, "role_labels": role_labels,
-                   "taking_nominations": taking_nominations, "voting": voting})
+                   "taking_nominations": taking_nominations, "voting": voting,
+                   "closed": closed})
 
 
 @require_GET

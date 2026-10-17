@@ -29,6 +29,15 @@
 <p><a class="button secondary" href="{% url 'nominations:review' org_slug=request.org.slug election_id=election.id %}">Nominations and candidates</a></p>
 {% endif %}
 
+{% if election.ballot_set_digest %}
+<h2>Counting and results</h2>
+<p class="actions">
+  {% if "tally.view" in request.permissions or "tally.run" in request.permissions or "keys.hold" in request.permissions or "results.publish" in request.permissions %}<a class="button" href="{% url 'tally:count' org_slug=request.org.slug election_id=election.id %}">Counting and certification</a>{% endif %}
+  <a class="button secondary" href="{% url 'tally:results' org_slug=request.org.slug election_id=election.id %}">Published results</a>
+  <a class="button secondary" href="{% url 'tally:receipts' org_slug=request.org.slug election_id=election.id %}">Receipt check</a>
+</p>
+{% endif %}
+
 {% if actions %}
 <h2>Next steps</h2>
 <div class="actions">

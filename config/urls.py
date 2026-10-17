@@ -16,4 +16,5 @@ urlpatterns = [
     path("o/<slug:org_slug>/", include("nominations.urls")),
     path("o/<slug:org_slug>/", include("keys.urls")),
     path("o/<slug:org_slug>/", include("voting.urls")),
+    path("o/<slug:org_slug>/", include("tally.urls")),
 ]

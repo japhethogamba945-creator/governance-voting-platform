@@ -42,6 +42,9 @@ class Transition:
     # False until the increment that implements the transition's preconditions.
     available: bool = True
     note: str = ""
+    # Performed by a dedicated workflow (counting, certification) that checks its
+    # own preconditions, never by the generic transition form.
+    flow: bool = False
 
 
 _ALL = [
@@ -59,18 +62,19 @@ _ALL = [
                step_up=True),
     Transition(SUSPENDED, OPEN, "Resume voting", frozenset({RO}), reason_required=True,
                step_up=True),
-    Transition(CLOSED, COUNTED, "Count", frozenset({RO}), available=False,
-               note="Counting arrives in increment 6.7."),
-    Transition(COUNTED, AWAITING, "Reconciliation passed", SYSTEM, available=False),
+    Transition(CLOSED, COUNTED, "Count", frozenset({RO}), flow=True,
+               note="On the counting page: two keyholders provide their shares."),
+    Transition(COUNTED, AWAITING, "Reconciliation passed", SYSTEM, flow=True,
+               note="Automatic once reconciliation passes and any tie is resolved."),
     Transition(AWAITING, COUNTED, "Order a recount", frozenset({RO}), reason_required=True,
-               available=False),
-    Transition(AWAITING, CERTIFIED, "Certify", frozenset({RO}), step_up=True, available=False),
+               flow=True),
+    Transition(AWAITING, CERTIFIED, "Certify", frozenset({RO}), step_up=True, flow=True),
     Transition(CERTIFIED, DISPUTED, "Mark disputed", frozenset({RO, ADMIN}),
-               reason_required=True, step_up=True, available=False),
+               reason_required=True, step_up=True),
     Transition(DISPUTED, COUNTED, "Order a recount", frozenset({RO}), reason_required=True,
-               available=False),
+               flow=True),
     Transition(DISPUTED, CERTIFIED, "Re-certify", frozenset({RO}), step_up=True,
-               available=False),
+               note="Confirms the existing certified result without a recount."),
     Transition(DRAFT, CANCELLED, "Cancel election", frozenset({ADMIN, RO}),
                reason_required=True, step_up=True),
     Transition(NOMINATION, CANCELLED, "Cancel election", frozenset({RO}),
@@ -91,4 +95,4 @@ def available_for(state: str, roles) -> list[Transition]:
     """Transitions a person with ``roles`` can perform from ``state`` right now."""
     roles = set(roles)
     return [t for t in _ALL
-            if t.source == state and t.available and t.roles & roles]
+            if t.source == state and t.available and not t.flow and t.roles & roles]

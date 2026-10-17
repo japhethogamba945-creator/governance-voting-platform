@@ -21,3 +21,7 @@ END $$;
 -- (SET LOCAL ROLE). app_rw does not inherit app_voting's privileges.
 -- (PostgreSQL 16+ syntax; re-running only emits a notice.)
 GRANT app_voting TO app_rw WITH INHERIT FALSE, SET TRUE;
+
+-- Counting switches to app_tally only inside the counting transaction
+-- (increment 6.7). app_tally alone can read ballot ciphertexts and write tallies.
+GRANT app_tally TO app_rw WITH INHERIT FALSE, SET TRUE;

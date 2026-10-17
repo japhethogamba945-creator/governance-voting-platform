@@ -131,6 +131,8 @@ def transition(election: Election, target: str, *, actor, roles, reason: str = "
         raise ElectionError("That change is not possible from the election's current state.")
     if not spec.available:
         raise ElectionError(f"“{spec.label}” is not available yet. {spec.note}".strip())
+    if spec.flow:
+        raise ElectionError(f"“{spec.label}” is done from its own page. {spec.note}".strip())
     if not (spec.roles & set(roles)):
         raise PermissionDenied
     if spec.reason_required and not reason:
@@ -184,6 +186,29 @@ def system_transition(election: Election, target: str, *, reason: str = "",
     for hook in TRANSITION_HOOKS:
         hook(current, target, None, context)
     return _apply_transition(current, target, actor=None, reason=reason)
+
+
+def flow_transition(election: Election, target: str, *, actor, reason: str = "",
+                    context: dict | None = None) -> Election:
+    """A transition made by a dedicated workflow (counting, certification).
+
+    The workflow has already checked who may act and its own preconditions;
+    the database re-checks them (tally/migrations). ``actor`` is None for the
+    automatic step after reconciliation.
+    """
+    context = {} if context is None else context
+    current = (Election.objects.select_for_update(of=("self",))
+               .select_related("current_rule_version").get(pk=election.pk))
+    spec = lifecycle.TRANSITIONS.get((current.state, target))
+    if spec is None or not spec.flow:
+        raise ElectionError("That change is not possible from the election's current state.")
+    if spec.reason_required and not (reason or "").strip():
+        raise ElectionError("A reason is required.")
+    for hook in TRANSITION_HOOKS:
+        hook(current, target, actor, context)
+    applied = _apply_transition(current, target, actor=actor, reason=(reason or "").strip()[:1000])
+    election.state = applied.state
+    return applied
 
 
 def _apply_transition(current: Election, target: str, *, actor, reason: str) -> Election:

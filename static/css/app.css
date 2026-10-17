@@ -52,3 +52,7 @@ fieldset { border: 1px solid var(--border); border-radius: 6px; margin-top: 16px
 label.candidate { align-items: flex-start; padding: 12px 0; border-bottom: 1px solid var(--border); }
 label.candidate input { margin-top: 4px; flex: none; }
 .statement { display: block; margin-top: 4px; }
+/* Counting and results (6.7): fingerprints wrap instead of widening the page. */
+code { overflow-wrap: anywhere; }
+ol.receipts li.match { background: color-mix(in srgb, var(--accent) 20%, transparent); font-weight: 600; }
+ul.checklist { list-style: none; padding-left: 0; }
