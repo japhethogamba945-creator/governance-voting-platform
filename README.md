@@ -2,7 +2,22 @@
 
 A multi-organisation voting and governance platform for clubs and membership organisations: membership registers, nominations, secret-ballot remote elections, counting, certification and audit.
 
-> **Status: prototype, increments 6.1–6.5 (foundation; membership and invitations; meetings, elections and lifecycle; nominations; keys and electorate).** Not for real elections. Development uses fictional data only. The design and approval history live in [`docs/design/`](docs/design/README.md).
+> **Status: prototype, increments 6.1–6.6 (foundation; membership and invitations; meetings, elections and lifecycle; nominations; keys and electorate; secret ballot).** Not for real elections. Development uses fictional data only. The design and approval history live in [`docs/design/`](docs/design/README.md).
+
+## Increment 6.6: secret ballot casting and closing
+
+| Area | Implemented |
+|---|---|
+| Ballot pages | Mobile-first ballot → review → cast → receipt. The review step carries the choices in the form itself (they are never stored between steps). A live "n of max" counter disables extra choices; the server enforces every rule regardless (maximum, minimum, partial and blank ballots, duplicates, unknown or foreign candidates). Works without JavaScript |
+| Secrecy | The server validates the ballot, then seals it with libsodium `crypto_box_seal` to the election's public key. The plaintext is bound to the election id and padded to 4096 bytes, so every ciphertext is 4144 bytes. The `ballot` row has **no** voter reference and **no** timestamp. Choices never reach logs, audit events, email or sessions (tested with a canary candidate) |
+| Separation of roles | Casting switches to `app_voting` (`SET LOCAL ROLE`) inside the casting transaction only. `app_voting` may insert ballots but not read them; `app_rw` has no access to the ballot table at all. Even the table owner cannot update, delete or truncate ballots |
+| One person, one vote | One transaction: lock the election `FOR SHARE` (closing takes `FOR UPDATE`, so it waits for casts in progress), lock the entitlement `FOR UPDATE`, validate, seal, insert, consume. A signed idempotency key, bound to the voter's entitlement, makes a retry of the same form return "accepted" truthfully; any other attempt gets "already accepted". The success page is sent only after the transaction commits |
+| Receipts | An 80-bit code generated **in the browser**; only its SHA-256 commitment reaches the server and is stored with the ballot. Without JavaScript, the server generates the code and shows it once. The receipt shows no choices |
+| Closing | The scheduler closes elections at the closing time and seals the ballot box: the ballot count and an order-independent digest are computed by a narrow `SECURITY DEFINER` function (no content exposed), stored write-once, audited and reconciled against consumed entitlements |
+| Marked register | The Returning Officer and Auditor see who has voted (never how); administrators see turnout only (D6) |
+| Acceptance tests | 3 (ineligible voters via direct requests), **4 (200 concurrent duplicate submissions on 20 connections → exactly one ballot)**, 5 (outside the window, including after the closing time before the scheduler runs), 6 (over-selection), 7 (receipt), 8 (no choices in admin views, audit, logs, email or sessions), 15 (failure before commit records nothing; a retry after a lost response is answered truthfully) |
+| Verified in a browser | Headless Chromium at phone width: selection limit, review, submission via JavaScript, receipt code generated in the browser and matching the stored commitment, code absent from server logs |
+| Tests | 267 |
 
 ## Increment 6.5: key ceremony, electorate and opening
 

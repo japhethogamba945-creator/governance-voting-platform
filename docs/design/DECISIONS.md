@@ -68,3 +68,16 @@ The sponsor approved the blueprint (Phase 1 gate) with the instruction: "use you
 | I6.5.4 | Who may be a keyholder | Any official (Org Admin, Returning Officer or Auditor) with a keyholder passphrase. The Returning Officer who schedules is always keyholder 1 and picks two others. |
 | I6.5.5 | Scheduler access | The scheduler runs as `app_rw`. It lists due elections through policy `scheduler_due` (scheduled or open states only, only while `app.scheduler` is set), then works on each election in its own organisation context. Run **exactly one** scheduler instance. |
 | I6.5.6 | Electorate amendments while suspended | Allowed by the database (with a reason) but **not yet exposed** in the UI. It will be added with suspension handling. |
+
+## Increment 6.6 decisions
+
+| ID | Decision | Resolution |
+|----|----------|------------|
+| I6.6.1 | How casting uses `app_voting` | The ballot insert and the consumption of the entitlement must be one transaction, so casting cannot use a separate connection. `app_rw` is granted membership in `app_voting` **WITH INHERIT FALSE, SET TRUE** and switches with `SET LOCAL ROLE` for the cast only. `app_rw` itself has no privileges on `ballot`; neither role can read ballots. (Variation of 02 §3, which described separate connection aliases.) |
+| I6.6.2 | Server sees choices while validating | As designed (threat T6, risk R1). The server must read a ballot to reject over-selection before accepting it. Plaintext exists only in memory during the request and is never logged or stored. End-to-end-verifiable voting remains the roadmap answer. |
+| I6.6.3 | Who voted, and when | The entitlement records only the date. The `ballot.accepted` audit event records the voter at minute precision, for the marked register and incident review. Ballots carry no time. Linking ballots to voters would still need physical row order plus two key shares (collusion risk R2). |
+| I6.6.4 | Receipt codes without JavaScript | The server generates the code, shows it once and stores only the commitment. The server briefly knows that voter's code: a weaker receipt for no-JavaScript users only. |
+| I6.6.5 | Publishing receipt commitments and checking a receipt | Deferred to 6.7 (results). The commitments are stored and the ballot-set digest is fixed at close. |
+| I6.6.6 | Early close by the Returning Officer | Not implemented (the rules flag exists). The database requires the closing time to have passed. |
+| I6.6.7 | `app_voting` UPDATE (id) on `election` | Needed only so that `SELECT ... FOR SHARE` is permitted. The guard trigger forbids changing an election's id. |
+| I6.6.8 | Concurrency test infrastructure | The race tests commit real data, run 20 separate connections and clean up after themselves. The test database is always created, independent of pytest-django's marker detection. |

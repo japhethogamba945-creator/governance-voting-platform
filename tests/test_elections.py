@@ -11,7 +11,7 @@ from django.utils import timezone
 from audit.models import AuditEvent
 from elections import lifecycle, rules, services
 from elections.models import Election, ElectionRuleVersion, LifecycleTransition
-from electorate.services import open_due_elections
+from electorate.services import close_due_elections, open_due_elections
 from nominations import services as nomination_services
 from nominations.models import Nomination
 from platform_core.db import acting_as, db_context
@@ -19,6 +19,7 @@ from tenancy.models import RoleAssignment
 from tenancy.roles import Role
 from tests.factories import (
     add_member,
+    backdate_closing,
     backdate_opening,
     make_election,
     make_keyholder,
@@ -278,7 +279,10 @@ def test_configuration_locked_after_submission_and_closed_is_final(two_orgs, ro)
         _set_reason("Power restored")
         Election.objects.filter(pk=election.pk).update(state="open")
         _set_reason("")
-        Election.objects.filter(pk=election.pk).update(state="closed")
+        with pytest.raises(DatabaseError, match="sealing the ballot box"), transaction.atomic():
+            Election.objects.filter(pk=election.pk).update(state="closed")
+        backdate_closing(election)
+        assert close_due_elections()[0][1] == "closed (0 ballots)"
         for change in ({"state": "open"}, {"state": "draft"}, {"seats": 1},
                        {"closes_at": timezone.now() + timedelta(days=9)}):
             with pytest.raises(DatabaseError), transaction.atomic():

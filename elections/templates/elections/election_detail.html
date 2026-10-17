@@ -47,6 +47,8 @@
 {% if election.electorate_digest %}
 <h2>Electorate</h2>
 <p>{{ electorate_size }} eligible voter{{ electorate_size|pluralize }} (frozen when voting opened). Ballots cast: {{ votes_cast }}.</p>
+{% if "voting.marked_register" in request.permissions %}<p><a href="{% url 'voting:marked_register' org_slug=request.org.slug election_id=election.id %}">Marked register (who has voted)</a></p>{% endif %}
+{% if election.ballot_set_digest %}<p class="muted">Ballot box sealed. Fingerprint: <code>{{ election.ballot_set_digest|slice:":16" }}…</code></p>{% endif %}
 <p class="muted">Electorate fingerprint: <code>{{ election.electorate_digest|slice:":16" }}…</code></p>
 {% endif %}
 

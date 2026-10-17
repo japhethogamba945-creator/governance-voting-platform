@@ -1,0 +1,23 @@
+{% extends "base.html" %}
+{% load static %}
+{% block title %}Ballot · {{ election.title }}{% endblock %}
+{% block content %}
+<h1>{{ election.title }}</h1>
+<p>Choose <strong>up to {{ rules.max_selections }}</strong> candidate{{ rules.max_selections|pluralize }}{% if rules.min_selections %} (at least {{ rules.min_selections }}){% endif %}.{% if rules.partial_ballots_allowed and rules.max_selections > 1 %} You may leave seats unfilled.{% endif %} Voting closes {{ election.closes_at|date:"j M Y, H:i" }}.</p>
+{% if error %}<p class="alert" role="alert">{{ error }}</p>{% endif %}
+<form method="post" action="{% url 'voting:review' org_slug=request.org.slug election_id=election.id %}">
+  {% csrf_token %}
+  <fieldset data-max-choices="{{ rules.max_selections }}">
+    <legend>Candidates</legend>
+    {% for c in candidates %}
+    <label class="check candidate">
+      <input type="checkbox" name="candidate" value="{{ c.id }}"{% if c.id|stringformat:"s" in selected %} checked{% endif %}>
+      <span><strong>{{ c.display_name }}</strong>{% if c.statement %}<span class="muted statement">{{ c.statement|linebreaksbr }}</span>{% endif %}</span>
+    </label>
+    {% endfor %}
+  </fieldset>
+  <p id="choice-counter" class="muted" aria-live="polite"></p>
+  <button type="submit">Review my choices</button>
+</form>
+<script src="{% static 'js/ballot.js' %}"></script>
+{% endblock %}

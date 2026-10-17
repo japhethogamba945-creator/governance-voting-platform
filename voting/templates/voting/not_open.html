@@ -1,0 +1,8 @@
+{% extends "base.html" %}
+{% block title %}Voting is not open{% endblock %}
+{% block content %}
+<h1>Voting is not open</h1>
+<p>{{ election.title }}: {{ election.state_label }}.</p>
+{% if election.opens_at %}<p>Voting {% if election.state == "scheduled" %}opens{% else %}opened{% endif %} {{ election.opens_at|date:"j M Y, H:i" }} and {% if election.state == "scheduled" or election.state == "open" %}closes{% else %}closed{% endif %} {{ election.closes_at|date:"j M Y, H:i" }} (Nairobi time).</p>{% endif %}
+{% if election.state == "suspended" %}<p>Voting is temporarily paused by the Returning Officer.</p>{% endif %}
+{% endblock %}

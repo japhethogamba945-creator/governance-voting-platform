@@ -179,6 +179,8 @@ def system_transition(election: Election, target: str, *, reason: str = "",
             raise ElectionError("The opening time has not been reached.")
         if current.public_key is None:
             raise ElectionError("The election has no public key (no key ceremony).")
+    if target == lifecycle.CLOSED and current.closes_at > timezone.now():
+        raise ElectionError("The closing time has not been reached.")
     for hook in TRANSITION_HOOKS:
         hook(current, target, None, context)
     return _apply_transition(current, target, actor=None, reason=reason)

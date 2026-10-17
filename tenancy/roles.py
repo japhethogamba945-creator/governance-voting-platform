@@ -34,6 +34,7 @@ class Perm(StrEnum):
     NOMINATIONS_VIEW = "nominations.view"
     NOMINATIONS_REVIEW = "nominations.review"  # approve or reject
     KEYS_HOLD = "keys.hold"  # set a keyholder passphrase; hold election key shares
+    MARKED_REGISTER_VIEW = "voting.marked_register"  # who voted (never how): RO, Auditor
 
 
 ROLE_PERMISSIONS: dict[Role, frozenset[Perm]] = {
@@ -47,9 +48,10 @@ ROLE_PERMISSIONS: dict[Role, frozenset[Perm]] = {
                                        Perm.AUDIT_VIEW, Perm.ELECTIONS_VIEW,
                                        Perm.ELECTIONS_EDIT, Perm.MEETINGS_MANAGE,
                                        Perm.NOMINATIONS_VIEW, Perm.NOMINATIONS_REVIEW,
-                                       Perm.KEYS_HOLD}),
+                                       Perm.KEYS_HOLD, Perm.MARKED_REGISTER_VIEW}),
     Role.AUDITOR: frozenset({Perm.ORG_VIEW, Perm.ROLES_VIEW, Perm.AUDIT_VIEW,
-                             Perm.ELECTIONS_VIEW, Perm.NOMINATIONS_VIEW, Perm.KEYS_HOLD}),
+                             Perm.ELECTIONS_VIEW, Perm.NOMINATIONS_VIEW, Perm.KEYS_HOLD,
+                             Perm.MARKED_REGISTER_VIEW}),
     Role.CANDIDATE: frozenset({Perm.ORG_VIEW}),
     Role.MEMBER: frozenset({Perm.ORG_VIEW, Perm.NOMINATIONS_SUBMIT}),
 }

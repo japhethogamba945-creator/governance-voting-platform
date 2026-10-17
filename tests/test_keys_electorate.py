@@ -33,6 +33,7 @@ from tests.factories import (
     open_nominations,
 )
 from tests.helpers import login
+from voting.services import as_db_role
 
 pytestmark = pytest.mark.django_db
 RO = {Role.RETURNING_OFFICER}
@@ -257,12 +258,16 @@ def test_electorate_and_entitlement_guards(org_a):
                 transaction.atomic():
             Entitlement.objects.filter(pk=entitlement.pk).update(
                 status="revoked", revoked_reason="x", revoked_by=ro)
-        # issued -> consumed is the one change allowed while open (casting, 6.6) ...
-        Entitlement.objects.filter(pk=entitlement.pk).update(
-            status="consumed", consumed_on=date.today(), idempotency_hash=b"h" * 32)
-        # ... and only once.
-        with pytest.raises(DatabaseError, match="only change once"), transaction.atomic():
-            Entitlement.objects.filter(pk=entitlement.pk).update(status="issued")
+        # The web role cannot consume an entitlement at all ...
+        with pytest.raises(DatabaseError, match="permission denied"), transaction.atomic():
+            Entitlement.objects.filter(pk=entitlement.pk).update(
+                status="consumed", consumed_on=date.today(), idempotency_hash=b"h" * 32)
+        # ... only the voting role can, while open, and only once.
+        with as_db_role("app_voting"):
+            Entitlement.objects.filter(pk=entitlement.pk).update(
+                status="consumed", consumed_on=date.today(), idempotency_hash=b"h" * 32)
+            with pytest.raises(DatabaseError, match="only change once"), transaction.atomic():
+                Entitlement.objects.filter(pk=entitlement.pk).update(status="issued")
         with pytest.raises(DatabaseError, match="permission denied"), transaction.atomic(), \
                 connection.cursor() as cursor:
             cursor.execute("DELETE FROM entitlement WHERE id = %s", [entitlement.pk])

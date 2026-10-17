@@ -189,8 +189,23 @@ def backdate_opening(election, minutes: int = 1) -> None:
     transaction, so the opening time is moved back here, bypassing the triggers
     with the superuser-only replication role.
     """
-    with acting_as(None), connection.cursor() as cursor:
+    from django.db import transaction
+
+    with transaction.atomic(), acting_as(None), connection.cursor() as cursor:
         cursor.execute("SET LOCAL session_replication_role = replica")
         cursor.execute("UPDATE election SET opens_at = now() - make_interval(mins => %s) "
                        "WHERE id = %s", [minutes, election.pk])
+        cursor.execute("SET LOCAL session_replication_role = origin")
+
+
+def backdate_closing(election, minutes: int = 1) -> None:
+    """TEST ONLY: move an open election's closing time into the past (see backdate_opening)."""
+    from django.db import transaction
+
+    with transaction.atomic(), acting_as(None), connection.cursor() as cursor:
+        cursor.execute("SET LOCAL session_replication_role = replica")
+        cursor.execute(
+            "UPDATE election SET opens_at = least(opens_at, now() - make_interval(mins => %s)), "
+            "closes_at = now() - make_interval(mins => %s) WHERE id = %s",
+            [minutes + 1, minutes, election.pk])
         cursor.execute("SET LOCAL session_replication_role = origin")

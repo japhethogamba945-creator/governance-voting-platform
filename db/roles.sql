@@ -16,3 +16,8 @@ BEGIN
     END IF;
   END LOOP;
 END $$;
+
+-- Ballot casting switches to app_voting only inside the casting transaction
+-- (SET LOCAL ROLE). app_rw does not inherit app_voting's privileges.
+-- (PostgreSQL 16+ syntax; re-running only emits a notice.)
+GRANT app_voting TO app_rw WITH INHERIT FALSE, SET TRUE;

@@ -1,0 +1,24 @@
+{% extends "base.html" %}
+{% load static %}
+{% block title %}Review your ballot{% endblock %}
+{% block content %}
+<h1>Review your ballot</h1>
+{% if chosen %}
+<p>You have chosen {{ chosen|length }} of {{ max }}:</p>
+<ol>{% for c in chosen %}<li>{{ c.display_name }}</li>{% endfor %}</ol>
+{% else %}
+<p><strong>You have not chosen any candidate.</strong> This is a blank ballot.</p>
+{% endif %}
+<p class="alert"><strong>You cannot change your vote after submitting.</strong></p>
+<form id="cast-form" method="post" action="{% url 'voting:cast' org_slug=request.org.slug election_id=election.id %}" data-election="{{ election.id }}">
+  {% csrf_token %}
+  {% for c in chosen %}<input type="hidden" name="candidate" value="{{ c.id }}">{% endfor %}
+  <input type="hidden" name="idempotency_key" value="{{ idempotency_key }}">
+  <input type="hidden" name="receipt_commitment" value="">
+  <p id="cast-status" class="muted" aria-live="polite"></p>
+  <button type="submit">Submit ballot</button>
+  <a href="{% url 'voting:ballot' org_slug=request.org.slug election_id=election.id %}">Go back</a>
+</form>
+<p id="check-status" hidden><a class="button secondary" href="{% url 'voting:ballot' org_slug=request.org.slug election_id=election.id %}">Check status</a></p>
+<script src="{% static 'js/ballot.js' %}"></script>
+{% endblock %}

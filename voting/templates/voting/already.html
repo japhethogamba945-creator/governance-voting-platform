@@ -1,0 +1,10 @@
+{% extends "base.html" %}
+{% load static %}
+{% block title %}Ballot already accepted{% endblock %}
+{% block content %}
+<h1>A ballot has already been accepted for you</h1>
+<p>{{ election.title }}: you have voted. A ballot cannot be changed.</p>
+<p>Receipt code saved on this device: <code id="receipt-code" data-election="{{ election.id }}"></code></p>
+<p>If you did not vote, contact the Returning Officer immediately.</p>
+<script src="{% static 'js/ballot.js' %}"></script>
+{% endblock %}

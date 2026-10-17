@@ -24,11 +24,15 @@ def _check_details(details: dict) -> None:
 def record(action: str, *, actor=None, actor_role: str = "",
            organisation_id: uuid.UUID | None = None, object_type: str = "",
            object_id: uuid.UUID | None = None, details: dict | None = None,
-           using: str = "default") -> AuditEvent:
-    """Write an audit event in the caller's transaction."""
+           at=None, using: str = "default") -> AuditEvent:
+    """Write an audit event in the caller's transaction.
+
+    ``at`` overrides the time, e.g. truncated to the minute for ballot events.
+    """
     details = details or {}
     _check_details(details)
+    extra = {"at": at} if at is not None else {}
     return AuditEvent.objects.using(using).create(
         action=action, actor=actor, actor_role=actor_role, organisation_id=organisation_id,
-        object_type=object_type, object_id=object_id, details=details,
+        object_type=object_type, object_id=object_id, details=details, **extra,
     )

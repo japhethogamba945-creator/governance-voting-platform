@@ -35,11 +35,21 @@ def org_dashboard(request, org_slug):
     from elections.models import Election
 
     role_labels = [Role(r).label for r in sorted(request.roles)]
+    from electorate.models import Entitlement
+    from members.models import Member
+
     taking_nominations = (Election.objects.filter(state="nomination")
                           if Perm.NOMINATIONS_SUBMIT in request.permissions else [])
+    member = Member.objects.filter(user=request.user, status=Member.Status.ACTIVE).first()
+    voting = []
+    if member is not None:
+        for entitlement in (Entitlement.objects.filter(member=member, election__state="open")
+                            .select_related("election")):
+            voting.append({"election": entitlement.election,
+                           "voted": entitlement.status == Entitlement.Status.CONSUMED})
     return render(request, "tenancy/org_dashboard.html",
                   {"org": request.org, "role_labels": role_labels,
-                   "taking_nominations": taking_nominations})
+                   "taking_nominations": taking_nominations, "voting": voting})
 
 
 @require_GET

@@ -1,0 +1,11 @@
+{% extends "base.html" %}
+{% load static %}
+{% block title %}Ballot accepted{% endblock %}
+{% block content %}
+<h1>✅ Your ballot was accepted</h1>
+<p>Your receipt code:</p>
+<p class="backup-code"><code id="receipt-code" data-election="{{ election.id }}" data-confirmed="1">{{ receipt_code }}</code></p>
+<p>This code does <strong>not</strong> show how you voted. After voting closes you can check that it appears in the list of counted ballots. Write it down or save it.</p>
+<p><a class="button secondary" href="{% url 'tenancy:dashboard' org_slug=request.org.slug %}">Done</a></p>
+<script src="{% static 'js/ballot.js' %}"></script>
+{% endblock %}
