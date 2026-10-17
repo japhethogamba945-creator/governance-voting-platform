@@ -59,6 +59,10 @@ GRANTS: dict[str, dict[str, str]] = {
     "allowed_transition": {"app_rw": "SELECT"},
     # Written only by the election_record_transition() trigger (SECURITY DEFINER).
     "lifecycle_transition": {"app_rw": "SELECT"},
+    # --- nominations ---------------------------------------------------------
+    "nomination": {"app_rw": "SELECT, INSERT, UPDATE"},
+    "nomination_document": {"app_rw": "SELECT, INSERT, DELETE, UPDATE (scan_status)"},
+    "candidate": {"app_rw": "SELECT, INSERT, UPDATE, DELETE"},
     # --- audit -------------------------------------------------------------
     "audit_event": {
         "app_rw": "SELECT, INSERT",

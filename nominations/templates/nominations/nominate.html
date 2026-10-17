@@ -1,0 +1,8 @@
+{% extends "base.html" %}
+{% block title %}Submit a nomination{% endblock %}
+{% block content %}
+<p class="crumbs"><a href="{% url 'nominations:mine' org_slug=request.org.slug election_id=election.id %}">{{ election.title }}</a></p>
+<h1>Submit a nomination</h1>
+<p class="muted">{% if rules.self_nomination %}You may nominate yourself.{% else %}Self-nominations are not accepted: nominate another member as their proposer.{% endif %}{% if rules.proposer_required %} A proposer is required.{% endif %}{% if rules.seconder_required %} A seconder is required.{% endif %} Everyone you name must confirm before the nomination can be approved.</p>
+{% include "elections/_form.html" %}
+{% endblock %}

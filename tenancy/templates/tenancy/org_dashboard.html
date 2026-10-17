@@ -9,5 +9,8 @@
   {% if "roles.view" in request.permissions %}<li class="card"><a href="{% url 'tenancy:roles' org_slug=org.slug %}">People and roles</a></li>{% endif %}
   {% if "org.manage_settings" in request.permissions %}<li class="card"><a href="{% url 'tenancy:settings' org_slug=org.slug %}">Organisation settings</a></li>{% endif %}
 </ul>
-{% if "elections.view" not in request.permissions %}<p>You have no elections at the moment.</p>{% endif %}
+{% if taking_nominations %}
+<h2>Taking nominations</h2>
+<ul class="cards">{% for e in taking_nominations %}<li class="card"><a href="{% url 'nominations:mine' org_slug=org.slug election_id=e.id %}">{{ e.title }}</a> <span class="muted">{{ e.seats }} seat{{ e.seats|pluralize }}</span></li>{% endfor %}</ul>
+{% elif "elections.view" not in request.permissions %}<p>You have no elections at the moment.</p>{% endif %}
 {% endblock %}

@@ -18,6 +18,11 @@ def login(client: Client, user, device, password: str = PASSWORD):
 _CSRF = re.compile(rb'name="csrfmiddlewaretoken" value="[^"]+"')
 
 
+_MESSAGES = re.compile(rb'<ul class="messages".*?</ul>\s*', re.S)
+
+
 def without_csrf(content: bytes) -> bytes:
-    """Strip per-response CSRF tokens so two pages can be compared byte for byte."""
-    return _CSRF.sub(b'name="csrfmiddlewaretoken" value=""', content)
+    """Strip per-response CSRF tokens and one-off flash messages (left over from an
+    earlier request in the same session) so two pages can be compared byte for byte."""
+    stripped = _MESSAGES.sub(b"", _CSRF.sub(b'name="csrfmiddlewaretoken" value=""', content))
+    return re.sub(rb">\s+<", b"><", stripped)  # template whitespace around the removed block

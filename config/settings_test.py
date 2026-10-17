@@ -23,4 +23,11 @@ from .settings import *  # noqa: E402,F403
 PASSWORD_HASHERS = ["tests.hashers.FastArgon2Hasher"]
 ALLOWED_HOSTS = ["testserver", "localhost"]
 SITE_URL = "https://vote.example"
+
+import tempfile  # noqa: E402
+
+PRIVATE_MEDIA_ROOT = Path(tempfile.mkdtemp(prefix="gvp-test-media-"))  # noqa: F405
+STORAGES = {**STORAGES, "default": {  # noqa: F405
+    "BACKEND": "django.core.files.storage.FileSystemStorage",
+    "OPTIONS": {"location": str(PRIVATE_MEDIA_ROOT), "base_url": None}}}
 EMAIL_BACKEND = "django.core.mail.backends.locmem.EmailBackend"

@@ -1,0 +1,8 @@
+Hello {{ member.full_name }},
+
+You have been named as {{ role }} on a nomination of {{ nomination.nominee.full_name }} for "{{ nomination.election.title }}".
+
+Please sign in to confirm or decline:
+{{ link }}
+
+The nomination cannot be approved until everyone named has confirmed.

@@ -1,0 +1,25 @@
+{% extends "base.html" %}
+{% block title %}Nominations · {{ election.title }}{% endblock %}
+{% block content %}
+<p class="crumbs"><a href="{% url 'elections:detail' org_slug=request.org.slug election_id=election.id %}">{{ election.title }}</a></p>
+<h1>Nominations</h1>
+<p>Status: {{ election.state_label }}. {% if not can_decide %}Decisions can be made while the election is in review.{% endif %}</p>
+<table>
+  <thead><tr><th>Nominee</th><th>Status</th><th>Confirmations</th><th>Eligible now</th><th>Documents</th><th></th></tr></thead>
+  <tbody>
+  {% for row in rows %}{% with n=row.n %}
+  <tr>
+    <td>{{ n.nominee.full_name }}<div class="muted">{{ n.nominee.member_number }}</div></td>
+    <td>{{ n.get_status_display }}{% if n.status_reason %}<div class="muted">{{ n.status_reason }}</div>{% endif %}</td>
+    <td>{% if n.outstanding_confirmations %}Waiting: {{ n.outstanding_confirmations|join:", " }}{% else %}Complete{% endif %}</td>
+    <td>{% if row.eligibility.eligible %}Yes{% elif row.eligibility %}No: {{ row.eligibility.reasons|join:"; " }}{% endif %}</td>
+    <td>{% for d in n.documents.all %}<a href="{% url 'nominations:download_document' org_slug=request.org.slug document_id=d.id %}">{{ d.original_name }}</a> <span class="muted">({{ d.get_scan_status_display }})</span><br>{% empty %}—{% endfor %}</td>
+    <td>{% if can_decide and n.status != "withdrawn" %}<a href="{% url 'nominations:decide' org_slug=request.org.slug nomination_id=n.id %}">Decide</a>{% endif %}</td>
+  </tr>
+  {% endwith %}{% empty %}<tr><td colspan="6">No nominations.</td></tr>{% endfor %}
+  </tbody>
+</table>
+<h2>Candidates ({{ candidates|length }} for {{ election.seats }} seat{{ election.seats|pluralize }})</h2>
+<ol>{% for c in candidates %}<li>{{ c.display_name }}</li>{% empty %}<li>None approved yet.</li>{% endfor %}</ol>
+<p class="muted">The ballot order is fixed when the election is submitted for approval, following the rules.</p>
+{% endblock %}

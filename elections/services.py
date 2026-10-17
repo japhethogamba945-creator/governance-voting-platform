@@ -22,6 +22,17 @@ class ElectionError(ValueError):
     """An operation that is not allowed in the election's current state."""
 
 
+# Checks and effects other apps run inside a transition, after its own
+# preconditions and before the state changes, in the same transaction. A hook
+# raises ElectionError to block the transition. Registered from AppConfig.ready().
+TRANSITION_HOOKS: list = []
+
+
+def register_transition_hook(hook):
+    TRANSITION_HOOKS.append(hook)
+    return hook
+
+
 def _check_times(opens_at, closes_at) -> None:
     if opens_at and closes_at and closes_at - opens_at < MIN_VOTING_PERIOD:
         raise ElectionError("Voting must stay open for at least one hour.")
@@ -143,6 +154,9 @@ def transition(election: Election, target: str, *, actor, roles, reason: str = "
         audit("election.rules_approved", actor=actor, organisation_id=current.organisation_id,
               object_type="election", object_id=current.id,
               details={"version": version.version, "rules_sha256": version.rules_sha256})
+
+    for hook in TRANSITION_HOOKS:
+        hook(current, target, actor)
 
     # The history row is written by a trigger from app.user_id and
     # app.transition_reason: set both explicitly so attribution never depends
