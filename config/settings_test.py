@@ -32,3 +32,4 @@ STORAGES = {**STORAGES, "default": {  # noqa: F405
     "BACKEND": "django.core.files.storage.FileSystemStorage",
     "OPTIONS": {"location": str(PRIVATE_MEDIA_ROOT), "base_url": None}}}
 EMAIL_BACKEND = "django.core.mail.backends.locmem.EmailBackend"
+AUDIT_ANCHOR_DIR = tempfile.mkdtemp(prefix="gvp-test-anchors-")

@@ -1,0 +1,12 @@
+{% if verification %}
+<div class="{% if verification.ok %}note{% else %}alert{% endif %}" role="status">
+  {% if verification.ok %}
+  <p><strong>✓ Audit chain verified.</strong> {{ verification.events }} event{{ verification.events|pluralize }} recomputed and {{ verification.anchors }} anchor{{ verification.anchors|pluralize }} checked against their write-once files.</p>
+  {% else %}
+  <p><strong>✗ The audit chain does not verify.</strong> Report this to the Auditor and follow the incident procedure.</p>
+  <ul>{% for p in verification.problems %}<li>{{ p }}</li>{% endfor %}</ul>
+  {% endif %}
+  {% if verification.head_seq %}<p class="muted">Chain head: event {{ verification.head_seq }} · <code>{{ verification.head_hash }}</code></p>{% endif %}
+  {% if unchained %}<p class="muted">{{ unchained }} newer event{{ unchained|pluralize }} not yet chained (the job chains them within a minute).</p>{% endif %}
+</div>
+{% endif %}

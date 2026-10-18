@@ -28,6 +28,7 @@ from django.db import connection, transaction
 from django.db.models import Max
 from django.utils import timezone
 
+from audit.models import AuditEvent
 from audit.services import record as audit
 from elections import lifecycle, rules
 from elections.models import Election
@@ -36,6 +37,7 @@ from electorate.models import Entitlement
 from keys import services as key_services
 from nominations.models import Candidate
 from platform_core.db import db_context, scheduler_scope
+from quorum import services as quorum_services
 from voting import encoding
 from voting.services import as_db_role
 
@@ -107,10 +109,6 @@ def certification_blockers(election, tally: Tally | None) -> list[str]:
                         "incident procedure.")
     if tally.has_ties and tie_resolution(tally) is None:
         problems.append("A tie for the last seat(s) must be resolved first.")
-    quorum = (election.current_rule_version.rules.get("quorum") or {}).get("type")
-    if quorum != "none":
-        problems.append("These rules set a quorum. Quorum assessment arrives in increment 6.8; "
-                        "until then such an election cannot be certified.")
     return problems
 
 
@@ -333,6 +331,14 @@ def receipts_digest(commitments: list[str]) -> str:
     return hashlib.sha256("\n".join(commitments).encode()).hexdigest()
 
 
+def audit_head(org_id) -> dict:
+    """The latest chained audit event: certifying fixes the trail up to this point."""
+    head = (AuditEvent.objects.filter(organisation_id=org_id, seq__isnull=False)
+            .order_by("-seq").values("seq", "hash").first())
+    return ({"chain_head_seq": head["seq"], "chain_head_hash": bytes(head["hash"]).hex()}
+            if head else {"chain_head_seq": 0, "chain_head_hash": ""})
+
+
 def canonical(document: dict) -> str:
     return json.dumps(document, sort_keys=True, separators=(",", ":"), ensure_ascii=False)
 
@@ -380,7 +386,9 @@ def result_document(election, tally: Tally, *, certified_by, certified_at) -> di
             "evidence": resolution.evidence,
             "recorded_at": resolution.recorded_at.isoformat(),
         },
+        "quorum": quorum_services.for_tally(election, tally),
         "receipts": {"count": len(commitments), "sha256": receipts_digest(commitments)},
+        "audit": audit_head(election.organisation_id),
         "statement": STATEMENT,
         "certified_by": certified_by.full_name or certified_by.email,
         "certified_at": certified_at.isoformat(),

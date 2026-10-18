@@ -2,7 +2,20 @@
 
 A multi-organisation voting and governance platform for clubs and membership organisations: membership registers, nominations, secret-ballot remote elections, counting, certification and audit.
 
-> **Status: prototype, increments 6.1–6.7 (foundation; membership and invitations; meetings, elections and lifecycle; nominations; keys and electorate; secret ballot; counting and results).** Not for real elections. Development uses fictional data only. The design and approval history live in [`docs/design/`](docs/design/README.md).
+> **Status: prototype, increments 6.1–6.8 (foundation; membership and invitations; meetings, elections and lifecycle; nominations; keys and electorate; secret ballot; counting and results; audit chain, quorum and auditor views). Phase 6 is complete; Phase 7 (verification) is next.** Not for real elections. Development uses fictional data only. The design and approval history live in [`docs/design/`](docs/design/README.md).
+
+## Increment 6.8: audit chain and anchoring, quorum, auditor views
+
+| Area | Implemented |
+|---|---|
+| Hash chain | Each organisation's audit events, plus one platform-level chain, are numbered and linked: `hash = SHA-256(prev_hash ‖ canonical JSON)`, with RFC 8785 (JCS) canonical form for every value type written. The chaining runs in `run_scheduler` as `app_audit`, the only role that can set the chain fields, under an advisory lock. The web role is never granted `app_audit` |
+| Anchors | When a chain has new events, the chain head is recorded every 15 minutes, and at once when voting opens or closes, a count completes, a result is certified or a result is published. Each anchor goes in an append-only table **and** a write-once, read-only file under `AUDIT_ANCHOR_DIR` (production: an object-lock location; deployment checklist). Auditors are emailed the chain head when voting opens or closes and when a result is certified. Each certified result document now includes the chain head at certification |
+| Verification | `manage.py verify_audit --org <slug>`, the "Verify the audit chain" button, and `verify_audit --bundle <file>` on a downloaded offline bundle all recompute the chain. They also check every anchor against the chain and against its file. Edited, removed or reordered events are detected, and so is a chain rewritten with recomputed hashes and a forged anchor row (the anchor file disagrees) |
+| Quorum | The approved rule (none / absolute / percent of electorate, measured by accepted ballots or registered attendance) is assessed with exact arithmetic (percentages rounded up) and recorded in the certified result as **met or not met**. The system reports it and does not decide validity (A8), so the 6.7 block on certification is removed |
+| Attendance register | When the basis is registered attendance, the Returning Officer records attending members by member number (step-up). The database accepts only members of the frozen electorate, from opening until certification |
+| Auditor views | Audit trail with filters, verification and anchors. The Org Admin's view leaves out who voted (D6), and the offline bundle (which includes it) is for the Returning Officer and Auditor only. "Election checks" recomputes every fingerprint: rules, counting key, electorate, ballot box, ballots equal voters, each count's reconciliation, and each certified document's SHA-256, ballot box and receipt list |
+| Acceptance tests | **8** (administrative views and audit records do not disclose individual choices: no candidate appears in any voting or counting record, the administrator sees no totals before publication and no marked register), plus chain tamper detection and quorum. The 6.7 acceptance-test numbering is corrected above |
+| Tests | 335 |
 
 ## Increment 6.7: counting, ties, recounts, certification and results
 
@@ -17,7 +30,7 @@ A multi-organisation voting and governance platform for clubs and membership org
 | Publication | A separate step (Org Admin or Returning Officer, step-up). Members see results only after publication. They can view the document and download it; its SHA-256 equals the published fingerprint. "Mark disputed" and "Re-certify" are available |
 | Receipt check | After close, members see the sorted list of receipt commitments (via a `SECURITY DEFINER` function) and its digest. The check runs **only in the browser**: the code is hashed locally and never sent to the server |
 | Immutability | Tallies, lines and tie resolutions cannot be changed or deleted. A certification can only be published once, or superseded once while disputed. Even the superuser is stopped by the triggers |
-| Acceptance tests | 9 (no results before certification and publication), 10 (recount keeps earlier counts), 11 (a reconciliation failure blocks certification), 12 (ties need the recorded procedure). Also: allocation vs an independent reference on 3,000 random elections, and counting vs a reference tally including invalid ballots |
+| Acceptance tests | 9 (the tally matches an independent reference: 3,000 random allocations and a 200-ballot reference count), 10 (partial and blank ballots counted correctly), 11 (ties flagged and resolved only by the approved procedure), 13 (recounts keep the original tally and record the new one), 14 (certified results cannot be changed, even by the database owner). Also: no results before certification and publication; a reconciliation failure blocks certification. *(Numbering corrected in 6.8.)* |
 | Verified in a browser | Headless Chromium at phone width, results and receipt check: the correct code is found and highlighted, a wrong code is not, and no request is made during the check |
 | Tests | 308 |
 

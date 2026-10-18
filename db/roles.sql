@@ -25,3 +25,11 @@ GRANT app_voting TO app_rw WITH INHERIT FALSE, SET TRUE;
 -- Counting switches to app_tally only inside the counting transaction
 -- (increment 6.7). app_tally alone can read ballot ciphertexts and write tallies.
 GRANT app_tally TO app_rw WITH INHERIT FALSE, SET TRUE;
+
+-- The background job process (manage.py run_scheduler) chains and anchors the
+-- audit trail as app_audit (increment 6.8). Production: give the job process
+-- its own LOGIN role that is a member of app_rw and app_audit, e.g.
+--   CREATE ROLE gvp_jobs LOGIN PASSWORD '...' NOSUPERUSER NOBYPASSRLS;
+--   GRANT app_rw, app_audit TO gvp_jobs;
+-- and run it with DB_USER=gvp_jobs DB_ASSUME_ROLE=app_rw. The web role is never
+-- granted app_audit.

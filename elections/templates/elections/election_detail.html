@@ -35,6 +35,7 @@
   {% if "tally.view" in request.permissions or "tally.run" in request.permissions or "keys.hold" in request.permissions or "results.publish" in request.permissions %}<a class="button" href="{% url 'tally:count' org_slug=request.org.slug election_id=election.id %}">Counting and certification</a>{% endif %}
   <a class="button secondary" href="{% url 'tally:results' org_slug=request.org.slug election_id=election.id %}">Published results</a>
   <a class="button secondary" href="{% url 'tally:receipts' org_slug=request.org.slug election_id=election.id %}">Receipt check</a>
+  {% if "tally.view" in request.permissions %}<a class="button secondary" href="{% url 'audit:checks' org_slug=request.org.slug election_id=election.id %}">Election checks</a>{% endif %}
 </p>
 {% endif %}
 

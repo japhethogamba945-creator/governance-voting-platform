@@ -14,6 +14,7 @@ from accounts.stepup import step_up_required
 from elections import lifecycle, rules
 from elections.models import Election
 from keys import services as key_services
+from quorum import services as quorum_services
 from tenancy.permissions import requires
 from tenancy.roles import Perm
 
@@ -53,6 +54,10 @@ def count_page(request, org_slug, election_id):
     tally = services.latest_tally(election)
     can_view = Perm.TALLY_VIEW in perms
     certification = services.active_certification(election)
+    version = election.current_rule_version
+    quorum_rule = (version.rules.get("quorum") if version else None) or {}
+    attendance_basis = (quorum_rule.get("type", "none") != "none"
+                        and quorum_rule.get("basis") == "registered_attendance" and can_view)
     return render(request, "tally/count.html", {
         "election": election,
         "waiting": waiting,
@@ -75,6 +80,9 @@ def count_page(request, org_slug, election_id):
         "can_publish": (Perm.RESULTS_PUBLISH in perms and election.state == lifecycle.CERTIFIED
                         and certification is not None and certification.published_at is None),
         "ttl_minutes": int(services.CONTRIBUTION_TTL.total_seconds() // 60),
+        "quorum": quorum_services.for_tally(election, tally) if tally and can_view else None,
+        "attendance_basis": attendance_basis,
+        "attendance": quorum_services.attendance_count(election) if attendance_basis else 0,
     })
 
 

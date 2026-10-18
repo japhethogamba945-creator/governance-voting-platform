@@ -66,6 +66,8 @@
   <li>{% if tally.reconciliation.all_ballots_valid %}✓{% else %}✗{% endif %} Every ballot valid ({{ tally.ballots_invalid }} invalid; {{ tally.ballots_blank }} blank)</li>
   <li>{% if tally.reconciliation.voters_within_electorate %}✓{% else %}✗{% endif %} Voters within the electorate ({{ tally.electorate_size }})</li>
 </ul>
+{% if quorum %}<p class="{% if quorum.met %}note{% else %}alert{% endif %}">{{ quorum.text }}</p>{% endif %}
+{% if attendance_basis %}<p><a href="{% url 'quorum:attendance' org_slug=request.org.slug election_id=election.id %}">Attendance register</a> ({{ attendance }} recorded)</p>{% endif %}
 {% if not tally.reconciliation_ok %}<p class="alert" role="alert">Reconciliation failed. This count cannot be certified. Follow the incident procedure.</p>{% endif %}
 {% if tally.has_ties %}
   {% if resolution %}

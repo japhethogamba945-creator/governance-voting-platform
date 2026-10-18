@@ -51,6 +51,7 @@ INSTALLED_APPS = [
     "electorate",
     "voting",
     "tally",
+    "quorum",
 ]
 
 MIDDLEWARE = [
@@ -207,6 +208,13 @@ STORAGES = {
                 "OPTIONS": {"location": str(PRIVATE_MEDIA_ROOT), "base_url": None}},
     "staticfiles": {"BACKEND": "django.contrib.staticfiles.storage.StaticFilesStorage"},
 }
+
+# Audit chain anchors (docs/design/05-security-review.md §6). Each anchor is also
+# written here as a write-once file. Production: a write-once (object-lock,
+# compliance mode) location outside the database's control. Empty = database
+# only, which does not protect against a database superuser (checklist item).
+AUDIT_ANCHOR_DIR = env("AUDIT_ANCHOR_DIR", "")
+AUDIT_ANCHOR_INTERVAL_MINUTES = env_int("AUDIT_ANCHOR_INTERVAL_MINUTES", 15)
 
 # Uploads (CSV import) are read in memory and capped well below this.
 DATA_UPLOAD_MAX_MEMORY_SIZE = 3 * 1024 * 1024

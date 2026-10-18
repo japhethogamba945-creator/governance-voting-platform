@@ -8,6 +8,7 @@
   {% if "members.view" in request.permissions %}<li class="card"><a href="{% url 'members:list' org_slug=org.slug %}">Membership register</a></li>{% endif %}
   {% if "roles.view" in request.permissions %}<li class="card"><a href="{% url 'tenancy:roles' org_slug=org.slug %}">People and roles</a></li>{% endif %}
   {% if "keys.hold" in request.permissions %}<li class="card"><a href="{% url 'keys:passphrase' org_slug=org.slug %}">Keyholder passphrase</a></li>{% endif %}
+  {% if "audit.view" in request.permissions %}<li class="card"><a href="{% url 'audit:trail' org_slug=org.slug %}">Audit trail</a></li>{% endif %}
   {% if "org.manage_settings" in request.permissions %}<li class="card"><a href="{% url 'tenancy:settings' org_slug=org.slug %}">Organisation settings</a></li>{% endif %}
 </ul>
 {% if voting %}

@@ -95,7 +95,11 @@ GRANTS: dict[str, dict[str, str]] = {
                   "UPDATE (published_at, published_by_id, superseded_at, supersede_reason)",
         "app_tally": "SELECT",
     },
+    # --- quorum (increment 6.8) -----------------------------------------------------
+    "participation_record": {"app_rw": "SELECT, INSERT, DELETE"},
     # --- audit -------------------------------------------------------------
+    # Anchors are written only by the chaining job (app_audit).
+    "audit_anchor": {"app_rw": "SELECT", "app_audit": "SELECT, INSERT"},
     "audit_event": {
         "app_rw": "SELECT, INSERT",
         "app_voting": "INSERT",

@@ -1,7 +1,9 @@
 """Counting, ties, recounts, certification, publication and the receipt check.
 
-Acceptance tests 9 (results only after certification), 10 (recount keeps the
-earlier count), 11 (reconciliation blocks certification) and 12 (ties).
+Acceptance tests 9 (the tally matches an independently calculated result), 10
+(partial ballots and abstentions are counted correctly), 11 (ties are flagged and
+handled by the approved procedure), 13 (recounts preserve the original tally) and
+14 (certified results cannot be silently altered).
 """
 
 import base64
