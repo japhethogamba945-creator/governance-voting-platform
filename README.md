@@ -125,6 +125,18 @@ A multi-organisation voting and governance platform for clubs and membership org
 
 Next increments are listed in [`docs/design/BLUEPRINT.md` §9](docs/design/BLUEPRINT.md#9-phased-implementation-plan-with-acceptance-gates).
 
+## Try the demo
+
+After the local set-up below, with `DJANGO_DEBUG=true`:
+
+```sh
+DB_ASSUME_ROLE= uv run python manage.py load_demo     # fictional "Demo Club"
+uv run python manage.py runserver
+uv run python manage.py demo_codes                    # current 6-digit codes, in another terminal
+```
+
+`load_demo` creates an administrator, a Returning Officer, an Auditor and five members (all `…@demo.example`, password `demo password 2026`), and three elections: one taking nominations, one open for voting, and one closed with three ballots, ready to be counted by two keyholders (passphrase `demo keyholder passphrase 2026`), certified and published. It prints what to try. `demo_codes` stands in for an authenticator app. Both commands refuse to run unless `DEBUG` is on.
+
 ## Local development
 
 Requirements: Python 3.12+, [uv](https://docs.astral.sh/uv/), PostgreSQL 16 (or Docker).

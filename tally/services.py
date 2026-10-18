@@ -52,8 +52,8 @@ RECOUNT_STATES = (lifecycle.COUNTED, lifecycle.AWAITING, lifecycle.DISPUTED)
 STATEMENT = (
     "Certified by the Returning Officer. This document records the count of the ballots "
     "held in the sealed electronic ballot box of this election, counted under the approved "
-    "election rules identified below. The number of ballots matched the number of members "
-    "recorded as having voted, and every ballot was valid."
+    "election rules identified in this document. The number of ballots matched the number "
+    "of members recorded as having voted, and every ballot was valid."
 )
 
 
