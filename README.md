@@ -13,7 +13,8 @@ A multi-organisation voting and governance platform for clubs and membership org
 | Restore drill | `pg_dump` and `pg_restore` into a new database, then `manage.py post_restore_check` (migrations, privileges, RLS, audit chain and anchors, election fingerprints) and a recount on the restored copy (`tests/test_restore_drill.py`, [procedure](docs/operations/backup-and-restore.md)) |
 | Mobile lifecycle | `e2e/run.sh`: the whole election through the real pages, six people on separate emulated phones (Chromium as a Pixel 7, WebKit as an iPhone 14), in CI job `e2e` |
 | Security | [OWASP ASVS 4.0.3 Level 2 self-assessment](docs/verification/asvs-l2.md) with findings F-1 to F-5, and the [manual security tests](docs/verification/manual-security-tests.md) to run on staging |
-| Tests | 340, plus the end-to-end lifecycle |
+| Fixes after Phase 7 | F-1: ballot submissions limited to 10 per member per minute, never with a false "not recorded" (P7.1). F-2: new passwords checked against an offline breached-password mirror (P7.2, [procedure](docs/operations/breached-passwords.md)) |
+| Tests | 346, plus the end-to-end lifecycle |
 
 ## Increment 6.8: audit chain and anchoring, quorum, auditor views
 
@@ -123,6 +124,18 @@ A multi-organisation voting and governance platform for clubs and membership org
 | Tests | 58 tests against real PostgreSQL running as `app_rw`: RLS catalogue guard, grants-manifest guard, DB-level and HTTP-level cross-tenant matrix (auto-discovers every `/o/<org_slug>/` route), auth, permissions, headers, audit immutability |
 
 Next increments are listed in [`docs/design/BLUEPRINT.md` §9](docs/design/BLUEPRINT.md#9-phased-implementation-plan-with-acceptance-gates).
+
+## Try the demo
+
+After the local set-up below, with `DJANGO_DEBUG=true`:
+
+```sh
+DB_ASSUME_ROLE= uv run python manage.py load_demo     # fictional "Demo Club"
+uv run python manage.py runserver
+uv run python manage.py demo_codes                    # current 6-digit codes, in another terminal
+```
+
+`load_demo` creates an administrator, a Returning Officer, an Auditor and five members (all `…@demo.example`, password `demo password 2026`), and three elections: one taking nominations, one open for voting, and one closed with three ballots, ready to be counted by two keyholders (passphrase `demo keyholder passphrase 2026`), certified and published. It prints what to try. `demo_codes` stands in for an authenticator app. Both commands refuse to run unless `DEBUG` is on.
 
 ## Local development
 

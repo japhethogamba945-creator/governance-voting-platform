@@ -5,7 +5,7 @@
 <h1>Results: {{ election.title }}</h1>
 {% if certification %}
   {% if election.state == "disputed" %}<p class="alert" role="alert">This result has been marked as disputed and is under review.</p>{% endif %}
-  {% include "tally/_document.html" %}
+  {% include "tally/_document.html" with hide_title=True %}
   <p>Certified result fingerprint (SHA-256): <code>{{ certification.content_sha256 }}</code></p>
   <p><a href="{% url 'tally:document' org_slug=request.org.slug election_id=election.id %}">Download the certified document</a> (its SHA-256 equals the fingerprint above). <a href="{% url 'tally:receipts' org_slug=request.org.slug election_id=election.id %}">Check your receipt code</a>.</p>
 {% elif withdrawn %}

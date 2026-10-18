@@ -1,0 +1,7 @@
+{% extends "base.html" %}
+{% block title %}Too many attempts{% endblock %}
+{% block content %}
+<h1>Too many attempts</h1>
+<p>{{ election.title }}: this request was not processed, so <strong>no ballot was recorded by it</strong>. Wait a minute, then open the ballot again.</p>
+<p><a class="button secondary" href="{% url 'voting:ballot' org_slug=request.org.slug election_id=election.id %}">Back to the ballot</a></p>
+{% endblock %}

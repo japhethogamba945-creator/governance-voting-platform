@@ -1,4 +1,4 @@
-<h2>{{ doc.election.title }}</h2>
+{% if not hide_title %}<h2>{{ doc.election.title }}</h2>{% endif %}
 <p>{{ doc.organisation.name }} · {{ doc.election.seats }} seat{{ doc.election.seats|pluralize }}</p>
 <table>
   <thead><tr><th>Rank</th><th>Candidate</th><th>Votes</th><th>Outcome</th></tr></thead>

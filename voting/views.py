@@ -7,11 +7,13 @@ them.
 
 import uuid
 
+from django.conf import settings
 from django.http import Http404
 from django.shortcuts import get_object_or_404, render
 from django.views.decorators.debug import sensitive_post_parameters
 from django.views.decorators.http import require_GET, require_POST
 
+from accounts import throttle
 from elections import lifecycle
 from elections.models import Election
 from electorate.models import Entitlement
@@ -23,6 +25,19 @@ from tenancy.roles import Perm
 from . import encoding, services
 
 SENSITIVE = ("candidate", "receipt_commitment", "idempotency_key")
+
+
+def _within_rate_limit(request) -> bool:
+    """At most BALLOT_POSTS_PER_MINUTE review and cast submissions per member (05 §2)."""
+    policy = throttle.Policy(threshold=settings.BALLOT_POSTS_PER_MINUTE, window_seconds=60,
+                             exponential=False, max_lock_seconds=60)
+    return throttle.allow(f"ballot:{request.user.id}", policy)
+
+
+def _slow_down(request, election):
+    response = render(request, "voting/slow_down.html", {"election": election}, status=429)
+    response.headers["Retry-After"] = "60"
+    return response
 
 
 def _voter_context(request, election_id):
@@ -70,6 +85,8 @@ def ballot(request, org_slug, election_id):
 @requires(Perm.ORG_VIEW)
 def review(request, org_slug, election_id):
     election, _, entitlement = _voter_context(request, election_id)
+    if not _within_rate_limit(request):
+        return _slow_down(request, election)
     page = _status_page(request, election, entitlement)
     if page is not None:
         return page
@@ -96,6 +113,11 @@ def cast(request, org_slug, election_id):
     election, member, entitlement = _voter_context(request, election_id)
     if member is None or entitlement is None:
         return render(request, "voting/not_eligible.html", {"election": election}, status=403)
+    if not _within_rate_limit(request):
+        # Never a false "not recorded": a retry after a lost response must learn the truth.
+        if entitlement.status == Entitlement.Status.CONSUMED:
+            return render(request, "voting/already.html", {"election": election}, status=409)
+        return _slow_down(request, election)
     commitment_hex = request.POST.get("receipt_commitment", "").strip().lower()
     commitment = None
     if commitment_hex:
