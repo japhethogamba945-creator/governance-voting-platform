@@ -6,3 +6,9 @@ staticfiles/
 .pytest_cache/
 .ruff_cache/
 private_media/
+
+# End-to-end harness output (e2e/run.sh)
+e2e/node_modules/
+e2e/package-lock.json
+e2e-failure-*.png
+e2e-server.log

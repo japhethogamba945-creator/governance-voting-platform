@@ -134,3 +134,29 @@ def apply_grants(using: str = "default") -> None:
                         sql.SQL(privileges), ident, sql.Identifier(role)
                     )
                 )
+
+
+def expected_table_privileges() -> set[tuple[str, str, str]]:
+    """(role, table, privilege) at table level, as the manifest defines them."""
+    import re
+
+    expected = set()
+    for table, roles in GRANTS.items():
+        for role, privileges in roles.items():
+            table_level = re.sub(r"\w+\s*\([^)]*\)", "", privileges)  # drop column lists
+            expected |= {(role, table, p.strip()) for p in table_level.split(",") if p.strip()}
+    return expected
+
+
+def privilege_differences(using: str = "default") -> tuple[set, set]:
+    """(missing, unexpected) table privileges of the application roles vs the manifest."""
+    with connections[using].cursor() as cursor:
+        cursor.execute(
+            "SELECT a.grantee::regrole::text, c.relname, a.privilege_type "
+            "FROM pg_class c JOIN pg_namespace n ON n.oid = c.relnamespace, "
+            "LATERAL aclexplode(c.relacl) a "
+            "WHERE n.nspname = 'public' AND c.relkind = 'r' "
+            "AND a.grantee::regrole::text = ANY(%s)", [list(APP_ROLES)])
+        actual = set(cursor.fetchall())
+    expected = expected_table_privileges()
+    return expected - actual, actual - expected

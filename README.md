@@ -2,7 +2,18 @@
 
 A multi-organisation voting and governance platform for clubs and membership organisations: membership registers, nominations, secret-ballot remote elections, counting, certification and audit.
 
-> **Status: prototype, increments 6.1–6.8 (foundation; membership and invitations; meetings, elections and lifecycle; nominations; keys and electorate; secret ballot; counting and results; audit chain, quorum and auditor views). Phase 6 is complete; Phase 7 (verification) is next.** Not for real elections. Development uses fictional data only. The design and approval history live in [`docs/design/`](docs/design/README.md).
+> **Status: prototype, increments 6.1–6.8 (foundation; membership and invitations; meetings, elections and lifecycle; nominations; keys and electorate; secret ballot; counting and results; audit chain, quorum and auditor views). Phase 6 is complete; Phase 7 (verification) is recorded in [`docs/verification/`](docs/verification/phase-7-report.md).** Not for real elections. Development uses fictional data only. The design and approval history live in [`docs/design/`](docs/design/README.md).
+
+## Phase 7: verification
+
+| Area | Implemented |
+|---|---|
+| Report | [`docs/verification/phase-7-report.md`](docs/verification/phase-7-report.md): the 17 acceptance tests with their evidence, results and what is left for Phase 8 |
+| Stress and faults | 1,000 parallel duplicate submissions on 50 connections give exactly one ballot. A connection killed before COMMIT records nothing and the retry succeeds once. A response lost after COMMIT is answered "accepted" on every retry. 40 voters racing the closing time: everything accepted is in the sealed box (`tests/test_stress_and_faults.py`) |
+| Restore drill | `pg_dump` and `pg_restore` into a new database, then `manage.py post_restore_check` (migrations, privileges, RLS, audit chain and anchors, election fingerprints) and a recount on the restored copy (`tests/test_restore_drill.py`, [procedure](docs/operations/backup-and-restore.md)) |
+| Mobile lifecycle | `e2e/run.sh`: the whole election through the real pages, six people on separate emulated phones (Chromium as a Pixel 7, WebKit as an iPhone 14), in CI job `e2e` |
+| Security | [OWASP ASVS 4.0.3 Level 2 self-assessment](docs/verification/asvs-l2.md) with findings F-1 to F-5, and the [manual security tests](docs/verification/manual-security-tests.md) to run on staging |
+| Tests | 340, plus the end-to-end lifecycle |
 
 ## Increment 6.8: audit chain and anchoring, quorum, auditor views
 
