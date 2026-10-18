@@ -9,7 +9,7 @@
 ## Result
 
 - **Automated suite:** 340 tests pass against a real PostgreSQL 16 with the production least-privilege roles and row-level security. ruff, the migrations check, bandit and `pip-audit --strict` are clean.
-- **Mobile lifecycle (acceptance test 17):** the complete lifecycle passes in Chromium emulating a Pixel 7 (412×839) in 15 seconds. CI runs the same script in Chromium and in WebKit emulating an iPhone 14; see the pull request's `e2e` check.
+- **Mobile lifecycle (acceptance test 17):** the complete lifecycle passes in Chromium emulating a Pixel 7 (412×839) and in WebKit 26.0 emulating an iPhone 14 (390×664), both in CI (job `e2e`, 11 s and 18 s); Chromium also locally.
 - **Acceptance tests:** 1–16 have automated evidence. 17 has automated evidence in emulation; real-device testing is still to be done.
 - **Findings:** five, none affecting ballot secrecy or one-person-one-vote: F-1 to F-5 in the [ASVS self-assessment](asvs-l2.md#findings-to-resolve-before-the-pilot). They must be resolved or accepted before the pilot.
 
@@ -33,7 +33,7 @@
 | 14 | Certified results cannot be silently altered | `test_tallies_and_certifications_are_immutable` (even the superuser is stopped by triggers); audit chain tamper detection, including a rewritten chain (`test_audit_chain.py`); document fingerprint recomputed by "Election checks" | Pass |
 | 15 | An interrupted request cannot produce a duplicate ballot or a false success | **Connection killed before COMMIT** (`pg_terminate_backend`): nothing recorded, retry accepted once (`test_connection_killed_before_commit_records_nothing_and_a_retry_succeeds`); **response lost after COMMIT**: 50 retries all answered "accepted", one ballot (`test_response_lost_after_commit_retry_is_answered_truthfully`); application-level failure before commit (`test_voting.py`) | Pass |
 | 16 | Backup restoration and essential security controls are tested | **Restore drill** with `pg_dump`/`pg_restore` and `post_restore_check`, including a recount on the restored copy and detection of damage (`test_restore_drill.py`, [procedure](../operations/backup-and-restore.md)); security controls: the suites above and the [ASVS self-assessment](asvs-l2.md) | Pass (automated); drill on real infrastructure pending |
-| 17 | The complete lifecycle works on common mobile browsers | `e2e/run.sh`: 10 steps through the real pages, six people on separate emulated phones (below) | Pass in Chromium emulation; WebKit in CI; real devices pending |
+| 17 | The complete lifecycle works on common mobile browsers | `e2e/run.sh`: 10 steps through the real pages, six people on separate emulated phones (below) | Pass in Chromium and WebKit emulation; real devices pending |
 
 ## Mobile lifecycle (acceptance test 17)
 
@@ -54,8 +54,8 @@ Each phone signs in with a password and an authenticator code, and privileged st
 
 | Browser | Device emulation | Where | Result |
 |---|---|---|---|
-| Chromium 141 | Pixel 7, 412×839 | local and CI | Pass (15 s) |
-| WebKit | iPhone 14, 390×664 | CI (`e2e` job) | See the pull request's `e2e` check |
+| Chromium 141 | Pixel 7, 412×839 | local and CI | Pass (15 s locally, 11 s in CI) |
+| WebKit 26.0 | iPhone 14, 390×664 | CI (`e2e` job) | Pass (18 s) |
 
 Emulation is not the real thing: real devices, low-end hardware, Samsung Internet and poor networks remain manual test 12.
 
