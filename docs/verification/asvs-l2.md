@@ -9,7 +9,7 @@
 | Chapter | Status | Main evidence | Open items |
 |---|---|---|---|
 | V1 Architecture | Met / Deployment | `docs/design/02`, `03`, `05`; threat model in 05 | Deployment architecture review (Phase 8) |
-| V2 Authentication | Partial | `tests/test_auth.py` | F-2 (no breached-password check), F-3 (no self-service recovery) |
+| V2 Authentication | Partial | `tests/test_auth.py`, `tests/test_hardening.py` | F-3 (no self-service recovery); F-2 fixed (needs the mirror at deployment) |
 | V3 Sessions | Met | `tests/test_auth.py`, `tests/test_permissions_and_headers.py` | — |
 | V4 Access control | Met | `tests/test_tenant_isolation_http.py`, `test_tenant_isolation_db.py`, `test_rls_catalogue.py`, `test_grants.py` | — |
 | V5 Validation, encoding | Met | forms, `tests/test_voting.py`, `tests/test_import.py` | — |
@@ -18,7 +18,7 @@
 | V8 Data protection | Met / Deployment | no-store, field-level minimisation, `tests/test_voting.py` canary | Backup encryption (Deployment) |
 | V9 Communications | Deployment | HSTS, secure cookies, SSL redirect settings | TLS configuration at the edge |
 | V10 Malicious code | Met | `uv.lock`, `pip-audit`, bandit in CI | — |
-| V11 Business logic | Partial | lifecycle state machine and database triggers; stress tests | F-1 (ballot POST rate limit) |
+| V11 Business logic | Met | lifecycle state machine and database triggers; stress tests; ballot rate limit (`tests/test_hardening.py`) | — (F-1 fixed) |
 | V12 Files | Partial | `nominations` upload checks and tests | F-4 (malware scanning, I6.4.4) |
 | V13 API | N/A / Met | no public API; CSRF on every POST | — |
 | V14 Configuration | Met / Deployment | strict CSP and headers, `tests/test_permissions_and_headers.py` | Container and host hardening (Deployment) |
@@ -27,8 +27,8 @@
 
 | ID | ASVS | Finding | Proposed treatment |
 |---|---|---|---|
-| F-1 | 11.1.2, 11.1.4 | The design's per-user rate limit on ballot POSTs (10 per minute, 05 §2) is not implemented. A voter can only ever have one ballot accepted, so the risk is load, not integrity. | Add the limit to the review and cast views, reusing `accounts.throttle`. |
-| F-2 | 2.1.7 | New passwords are checked against Django's common-password list and a 12-character minimum, but not against a breached-password corpus. | Add an offline k-anonymity breached-password check, or a larger local list. |
+| F-1 | 11.1.2, 11.1.4 | The design's per-user rate limit on ballot POSTs (10 per minute, 05 §2) was not implemented. | **Fixed:** at most `BALLOT_POSTS_PER_MINUTE` (10) review and cast submissions per member per minute; HTTP 429 with `Retry-After`. A throttled cast by a member whose ballot was already accepted is answered "already accepted", never "not recorded" (acceptance test 15). Tests: `tests/test_hardening.py`. |
+| F-2 | 2.1.7 | New passwords were checked against Django's common-password list and a 12-character minimum, but not against a breached-password corpus. | **Fixed in code:** `BreachedPasswordValidator` checks an offline mirror in the k-anonymity range format; the password never leaves the server. **Deployment:** provide the mirror (`BREACHED_PASSWORDS_DIR`, [procedure](../operations/breached-passwords.md)); `check --deploy` warns without it. |
 | F-3 | 2.5.x | There is no self-service password reset. Recovery is by recovery code (second factor) or by an administrator re-inviting the member. Safe, but support-heavy (residual risk R5). | Decide with the pilot organisation; if needed, add reset links that follow 2.5 (single use, short-lived, no account enumeration). |
 | F-4 | 12.4.2 | Uploaded nomination documents are not scanned for malware (I6.4.4). Mitigated by content-type checks, size limits, random storage names and attachment-only downloads with a sandboxing CSP. | Add a scanner (e.g. ClamAV) and a separate download domain (deployment checklist). |
 | F-5 | 1.x | Anchor storage, the job-process login, backups and TLS depend on the hosting set-up (I6.8.3, I6.8.7, 05 §9). | Verify on the real infrastructure at Phase 8. |
@@ -46,7 +46,7 @@
 - 1.14 Configuration architecture: all secrets from the environment; separate least-privilege database roles. **Met / Deployment.**
 
 ### V2 Authentication
-- 2.1 Passwords: minimum 12 characters, no maximum below 64, Unicode allowed, no composition rules, Argon2id storage (`accounts/hashers.py`). Breached-password check: **Gap (F-2)**.
+- 2.1 Passwords: minimum 12 characters, no maximum below 64, Unicode allowed, no composition rules, Argon2id storage (`accounts/hashers.py`). Breached-password check against an offline mirror (`accounts/validators.py`, `test_breached_passwords_are_refused`): **Met** once the mirror is deployed (F-2).
 - 2.2 General authenticator security: lockout with exponential back-off per account and per IP, identical responses for unknown and wrong (`test_account_lockout_after_five_failures`, `test_lockout_applies_equally_to_unknown_emails`, `test_wrong_password_and_unknown_email_look_identical`). **Met.**
 - 2.4 Credential storage: Argon2id; throttle keys are HMACs, never raw emails (`test_throttle_keys_do_not_store_email`). **Met.**
 - 2.5 Credential recovery: recovery codes single use and hashed (`test_recovery_code_is_single_use_and_stored_hashed`); no self-service reset: **Partial (F-3)**.
@@ -93,7 +93,7 @@
 
 ### V11 Business logic
 - 11.1.1–11.1.3 Sequential steps enforced: the election state machine is enforced by the application and again by database triggers (`tests/test_elections.py`); one person one vote under 1,000 parallel duplicates (`test_1000_parallel_duplicate_submissions_produce_exactly_one_ballot`); closing-time race (`test_submissions_racing_the_closing_time`). **Met.**
-- 11.1.4 Anti-automation on ballot submission: **Gap (F-1)**; login is throttled.
+- 11.1.4 Anti-automation: login is throttled, and ballot submissions are limited per member per minute without ever giving a false answer about acceptance (`test_ballot_submissions_are_rate_limited_per_member`, `test_a_throttled_retry_is_never_told_a_false_not_recorded`). **Met (F-1 fixed).**
 
 ### V12 Files and resources
 - 12.1 Size limits; 12.2 type checked from content; 12.3 random storage names outside any served directory; 12.5 downloads as attachments with a sandboxing CSP (`tests/test_nominations.py`). **Met.**

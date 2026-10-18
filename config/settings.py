@@ -134,7 +134,14 @@ AUTH_PASSWORD_VALIDATORS = [
         "OPTIONS": {"min_length": 12},
     },
     {"NAME": "django.contrib.auth.password_validation.CommonPasswordValidator"},
+    {"NAME": "accounts.validators.BreachedPasswordValidator"},
 ]
+# Offline mirror of a breached-password corpus, one file per 5-character SHA-1
+# prefix (docs/operations/breached-passwords.md). Empty = not checked (a system
+# check warns when DEBUG is off).
+BREACHED_PASSWORDS_DIR = env("BREACHED_PASSWORDS_DIR", "")
+# Ballot form submissions (review and cast) allowed per member per minute (05 §2).
+BALLOT_POSTS_PER_MINUTE = env_int("BALLOT_POSTS_PER_MINUTE", 10)
 
 # --- sessions & cookies -------------------------------------------------
 SECURE_COOKIES = env_bool("SECURE_COOKIES", True)

@@ -13,7 +13,8 @@ A multi-organisation voting and governance platform for clubs and membership org
 | Restore drill | `pg_dump` and `pg_restore` into a new database, then `manage.py post_restore_check` (migrations, privileges, RLS, audit chain and anchors, election fingerprints) and a recount on the restored copy (`tests/test_restore_drill.py`, [procedure](docs/operations/backup-and-restore.md)) |
 | Mobile lifecycle | `e2e/run.sh`: the whole election through the real pages, six people on separate emulated phones (Chromium as a Pixel 7, WebKit as an iPhone 14), in CI job `e2e` |
 | Security | [OWASP ASVS 4.0.3 Level 2 self-assessment](docs/verification/asvs-l2.md) with findings F-1 to F-5, and the [manual security tests](docs/verification/manual-security-tests.md) to run on staging |
-| Tests | 340, plus the end-to-end lifecycle |
+| Fixes after Phase 7 | F-1: ballot submissions limited to 10 per member per minute, never with a false "not recorded" (P7.1). F-2: new passwords checked against an offline breached-password mirror (P7.2, [procedure](docs/operations/breached-passwords.md)) |
+| Tests | 346, plus the end-to-end lifecycle |
 
 ## Increment 6.8: audit chain and anchoring, quorum, auditor views
 

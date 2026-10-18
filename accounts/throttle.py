@@ -1,4 +1,4 @@
-"""PostgreSQL-backed rate limiting for authentication attempts.
+"""PostgreSQL-backed rate limiting for authentication attempts and ballot submissions.
 
 Account keys are derived from the submitted email whether or not an account
 exists, so lockout behaviour cannot be used to discover accounts.
@@ -77,6 +77,18 @@ def record_failure(key: str, policy: Policy) -> None:
                 "+ make_interval(secs => %s) WHERE key = %s",
                 [policy.window_seconds, key],
             )
+
+
+def allow(key: str, policy: Policy) -> bool:
+    """Count one event under ``key``. False once the policy's limit has been reached.
+
+    With a non-exponential policy, ``threshold`` events are allowed per window and
+    later ones are refused until the window ends.
+    """
+    if is_locked(key):
+        return False
+    record_failure(key, policy)
+    return True
 
 
 def record_login_failure(email: str, ip: str) -> None:

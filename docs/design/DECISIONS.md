@@ -110,3 +110,10 @@ The sponsor approved the blueprint (Phase 1 gate) with the instruction: "use you
 | I6.8.6 | Who sees what in the audit trail | Returning Officer and Auditor: everything, including `ballot.accepted` (who voted, the marked register) and the offline bundle. Org Admin: the trail without `ballot.accepted` and without the bundle (D6, "filtered" in 02 §6). No audit record names a candidate in connection with voting or counting (acceptance test 8). |
 | I6.8.7 | Job process privileges | Chaining needs `SET ROLE app_audit`. The job process (`run_scheduler`) logs in with its own role, a member of `app_rw` and `app_audit` (db/roles.sql). The web login is never granted `app_audit`. |
 | I6.8.8 | Election checks | An auditor page recomputes every recorded fingerprint from stored data. It shows consistency, not independent certification (MVP exclusion). An electorate amended while suspended is reported, not recomputed, because the fingerprint covers the electorate frozen at opening. |
+
+## Fixes after Phase 7
+
+| ID | Decision | Resolution |
+|----|----------|------------|
+| P7.1 | Ballot submission rate limit (F-1) | At most `BALLOT_POSTS_PER_MINUTE` (default 10) review and cast submissions per member per minute, counted in the existing PostgreSQL throttle table. Over the limit: HTTP 429 with `Retry-After: 60`, and the page states that this request recorded nothing. A throttled **cast** by a member whose entitlement is already consumed gets the "already accepted" page instead, so a retry after a lost response is never told something false (acceptance test 15). |
+| P7.2 | Breached-password check (F-2) | Offline only: a local mirror in the k-anonymity range format, one file per SHA-1 prefix, read one file per check. No external service is called, so no password data leaves the server. A partial mirror is allowed (a missing prefix file means not listed). Without a configured mirror the check is off, and `manage.py check --deploy` warns (`accounts.W001`). Licence terms of the corpus: **[LEGAL-REVIEW]**. |

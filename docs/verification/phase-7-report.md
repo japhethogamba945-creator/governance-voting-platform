@@ -11,7 +11,7 @@
 - **Automated suite:** 340 tests pass against a real PostgreSQL 16 with the production least-privilege roles and row-level security. ruff, the migrations check, bandit and `pip-audit --strict` are clean.
 - **Mobile lifecycle (acceptance test 17):** the complete lifecycle passes in Chromium emulating a Pixel 7 (412×839) and in WebKit 26.0 emulating an iPhone 14 (390×664), both in CI (job `e2e`, 11 s and 18 s); Chromium also locally.
 - **Acceptance tests:** 1–16 have automated evidence. 17 has automated evidence in emulation; real-device testing is still to be done.
-- **Findings:** five, none affecting ballot secrecy or one-person-one-vote: F-1 to F-5 in the [ASVS self-assessment](asvs-l2.md#findings-to-resolve-before-the-pilot). They must be resolved or accepted before the pilot.
+- **Findings:** five, none affecting ballot secrecy or one-person-one-vote: F-1 to F-5 in the [ASVS self-assessment](asvs-l2.md#findings-to-resolve-before-the-pilot). *Update after Phase 7:* F-1 (ballot rate limit) is fixed, and F-2 (breached passwords) is fixed in code but needs the offline mirror at deployment. F-3 to F-5 must be resolved or accepted before the pilot.
 
 ## Acceptance tests
 
@@ -81,4 +81,4 @@ The recount on the restored copy reproduced the original totals and ballot-box d
 - The manual security tests on a staging deployment ([list](manual-security-tests.md)).
 - Real-device testing: Chrome on a low-end Android phone, Safari on iOS, Samsung Internet.
 - The restore drill on the real backup infrastructure, synchronous replication, and a load test at twice the expected peak (05 §9).
-- Findings F-1 to F-5, and the open **[CONFIRM against pilot governing documents]** and **[LEGAL-REVIEW]** items in `docs/design/`.
+- Findings F-3 to F-5 (and deploying the F-2 mirror), and the open **[CONFIRM against pilot governing documents]** and **[LEGAL-REVIEW]** items in `docs/design/`.
