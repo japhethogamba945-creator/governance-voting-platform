@@ -1,0 +1,38 @@
+{% extends "base.html" %}
+{% block title %}Audit trail{% endblock %}
+{% block content %}
+<p class="crumbs"><a href="{% url 'tenancy:dashboard' org_slug=request.org.slug %}">{{ request.org.legal_name }}</a></p>
+<h1>Audit trail</h1>
+<p>Every privileged action is recorded here and linked into a hash chain. Anchors record the chain head outside the database, so earlier changes would be detected.{% if filtered %} Records of who voted are shown only to the Returning Officer and Auditor.{% endif %}</p>
+<form method="post" class="inline">{% csrf_token %}<button type="submit">Verify the audit chain</button></form>
+{% if can_download %}<a class="button secondary" href="{% url 'audit:bundle' org_slug=request.org.slug %}">Download verification bundle</a>{% endif %}
+{% include "audit/_verification.html" %}
+
+<form method="get" class="filters">
+  <label for="election">Election</label>
+  <select name="election" id="election"><option value="">All</option>{% for e in elections %}<option value="{{ e.id }}"{% if election == e.id|stringformat:"s" %} selected{% endif %}>{{ e.title }}</option>{% endfor %}</select>
+  <label for="action">Action starts with</label>
+  <input type="text" name="action" id="action" value="{{ action }}" placeholder="e.g. tally.">
+  <button type="submit" class="secondary">Filter</button>
+</form>
+
+<table>
+  <thead><tr><th>#</th><th>Time</th><th>Who</th><th>Action</th><th>Details</th></tr></thead>
+  <tbody>
+  {% for e in page %}
+  <tr><td>{% if e.seq %}{{ e.seq }}{% else %}<span class="muted">pending</span>{% endif %}</td>
+    <td>{{ e.at|date:"j M Y, H:i" }}</td><td>{{ e.actor.email|default:"system" }}</td>
+    <td><code>{{ e.action }}</code></td><td><code>{{ e.details|default:"" }}</code></td></tr>
+  {% empty %}<tr><td colspan="5">No events.</td></tr>
+  {% endfor %}
+  </tbody>
+</table>
+<p>{% if page.has_previous %}<a href="?page={{ page.previous_page_number }}&amp;election={{ election }}&amp;action={{ action|urlencode }}">Newer</a>{% endif %}
+  Page {{ page.number }} of {{ page.paginator.num_pages }}
+  {% if page.has_next %}<a href="?page={{ page.next_page_number }}&amp;election={{ election }}&amp;action={{ action|urlencode }}">Older</a>{% endif %}</p>
+
+{% if anchors %}
+<h2>Recent anchors</h2>
+<ul>{% for a in anchors %}<li>Event {{ a.up_to_seq }} · {{ a.anchored_at|date:"j M Y, H:i" }} · {{ a.reason }} · <code>{{ a.head_hash|slice:":16" }}…</code></li>{% endfor %}</ul>
+{% endif %}
+{% endblock %}

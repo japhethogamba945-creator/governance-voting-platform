@@ -11,6 +11,7 @@
 {% if doc.tie_resolution %}
 <p><strong>Tie:</strong> resolved by {{ doc.tie_resolution.procedure|lower }}. Elected: {{ doc.tie_resolution.elected|join:", " }}. {{ doc.tie_resolution.evidence }}</p>
 {% endif %}
+{% if doc.quorum %}<p class="{% if doc.quorum.met %}note{% else %}alert{% endif %}">{{ doc.quorum.text }}{% if not doc.quorum.met %} The system reports this; whether the result stands is a matter for the organisation's rules.{% endif %}</p>{% endif %}
 <dl>
   <dt>Eligible voters</dt><dd>{{ doc.count.electorate }}</dd>
   <dt>Ballots counted</dt><dd>{{ doc.count.ballots }} ({{ doc.count.blank }} blank, {{ doc.count.invalid }} invalid)</dd>
@@ -18,6 +19,7 @@
   <dt>Rules</dt><dd>Version {{ doc.election.rules_version }} · <code>{{ doc.election.rules_sha256|slice:":16" }}…</code></dd>
   <dt>Ballot box seal</dt><dd><code>{{ doc.election.ballot_set_digest|slice:":16" }}…</code></dd>
   <dt>Receipt list</dt><dd>{{ doc.receipts.count }} receipts · <code>{{ doc.receipts.sha256|slice:":16" }}…</code></dd>
+  {% if doc.audit %}<dt>Audit trail</dt><dd>Up to event {{ doc.audit.chain_head_seq }}{% if doc.audit.chain_head_hash %} · <code>{{ doc.audit.chain_head_hash|slice:":16" }}…</code>{% endif %}</dd>{% endif %}
 </dl>
 <p class="statement">{{ doc.statement }}</p>
 <p>{{ doc.certified_by }}, Returning Officer · {{ doc.certified_at|slice:":16" }}</p>

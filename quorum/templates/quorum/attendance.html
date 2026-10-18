@@ -1,0 +1,30 @@
+{% extends "base.html" %}
+{% block title %}Attendance · {{ election.title }}{% endblock %}
+{% block content %}
+<p class="crumbs"><a href="{% url 'tally:count' org_slug=request.org.slug election_id=election.id %}">Counting: {{ election.title }}</a></p>
+<h1>Attendance register</h1>
+{% if rule.basis == "registered_attendance" and rule.type != "none" %}
+<p>The quorum for this election is measured by registered attendance. Record each member of the electorate who attended. The count of records is used in the quorum assessment in the certified result.</p>
+{% else %}
+<p class="note">This election's quorum rule does not use registered attendance. Records here do not affect the result.</p>
+{% endif %}
+{% if editable %}
+<form method="post" action="{% url 'quorum:add' org_slug=request.org.slug election_id=election.id %}">
+  {% csrf_token %}
+  <label for="member_numbers">Member numbers (one per line, or separated by commas)</label>
+  <textarea name="member_numbers" id="member_numbers" rows="4"></textarea>
+  <button type="submit">Record attendance</button>
+</form>
+{% else %}
+<p class="muted">Attendance can be changed from the opening of voting until certification, by the Returning Officer.</p>
+{% endif %}
+<h2>{{ records|length }} recorded</h2>
+<ul>
+  {% for r in records %}
+  <li>{{ r.member.full_name }} ({{ r.member.member_number }}) <span class="muted">recorded {{ r.recorded_at|date:"j M Y, H:i" }}</span>
+    {% if editable %}<form method="post" action="{% url 'quorum:remove' org_slug=request.org.slug election_id=election.id %}" class="inline">{% csrf_token %}<input type="hidden" name="record" value="{{ r.id }}"><button type="submit" class="link">Remove</button></form>{% endif %}
+  </li>
+  {% empty %}<li>None yet.</li>
+  {% endfor %}
+</ul>
+{% endblock %}

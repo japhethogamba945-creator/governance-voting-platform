@@ -1,0 +1,19 @@
+{% extends "base.html" %}
+{% block title %}Checks · {{ election.title }}{% endblock %}
+{% block content %}
+<p class="crumbs"><a href="{% url 'elections:detail' org_slug=request.org.slug election_id=election.id %}">{{ election.title }}</a></p>
+<h1>Election checks</h1>
+<p>Each fingerprint recorded for this election is recomputed now from the stored data. These checks show that the records are consistent; they are not an independent certification of the election.</p>
+<p class="{% if all_ok %}note{% else %}alert{% endif %}"><strong>{% if all_ok %}✓ All checks passed.{% else %}✗ At least one check failed.{% endif %}</strong></p>
+<table>
+  <thead><tr><th></th><th>Check</th><th>Detail</th></tr></thead>
+  <tbody>
+  {% for c in checks %}
+  <tr><td>{% if c.ok is None %}–{% elif c.ok %}✓{% else %}<strong>✗</strong>{% endif %}</td><td>{{ c.label }}</td><td><code>{{ c.detail }}</code></td></tr>
+  {% empty %}<tr><td colspan="3">Nothing to check yet.</td></tr>
+  {% endfor %}
+  </tbody>
+</table>
+<h2>Audit trail</h2>
+{% include "audit/_verification.html" %}
+{% endblock %}
