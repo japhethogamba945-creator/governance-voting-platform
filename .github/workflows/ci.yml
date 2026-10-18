@@ -44,3 +44,54 @@ jobs:
         run: uv run bandit -q -r accounts tenancy audit platform_core members elections nominations keys electorate voting tally quorum config -c pyproject.toml
       - name: Dependency audit
         run: uv export --frozen --no-dev --no-hashes -o requirements.txt && uv run pip-audit -r requirements.txt --strict
+
+  e2e:
+    # Acceptance test 17: the whole election lifecycle through the real pages on
+    # emulated phones (Pixel 7 in Chromium, iPhone 14 in WebKit).
+    runs-on: ubuntu-latest
+    services:
+      postgres:
+        image: postgres:16
+        env:
+          POSTGRES_USER: gvp_admin
+          POSTGRES_PASSWORD: gvp_admin
+          POSTGRES_DB: gvp
+        ports: ["5432:5432"]
+        options: >-
+          --health-cmd "pg_isready -U gvp_admin" --health-interval 5s
+          --health-timeout 5s --health-retries 10
+    env:
+      PGPASSWORD: gvp_admin
+      DB_NAME: gvp
+      DB_USER: gvp_admin
+      DB_PASSWORD: gvp_admin
+      DJANGO_SECRET_KEY: ci-e2e-only-not-secret
+      SITE_URL: http://localhost:8765
+    steps:
+      - uses: actions/checkout@v4
+      - uses: astral-sh/setup-uv@v6
+        with:
+          python-version: "3.13"
+      - uses: actions/setup-node@v4
+        with:
+          node-version: "22"
+      - run: uv sync --frozen
+      - name: Create application database roles
+        run: psql -h localhost -U gvp_admin -d gvp -v ON_ERROR_STOP=1 -f db/roles.sql
+      - name: Migrate (as the administrative login)
+        run: .venv/bin/python manage.py migrate
+      - name: Install Playwright and its browsers
+        working-directory: e2e
+        run: npm install --no-audit --no-fund && npx playwright install --with-deps chromium webkit
+      - name: Election lifecycle on emulated phones
+        run: e2e/run.sh chromium webkit
+        env:
+          DB_ASSUME_ROLE: app_rw
+      - name: Screenshots and server log on failure
+        if: failure()
+        uses: actions/upload-artifact@v4
+        with:
+          name: e2e-failure
+          path: |
+            e2e-failure-*.png
+            e2e-server.log

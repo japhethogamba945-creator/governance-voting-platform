@@ -1,0 +1,9 @@
+{
+  "name": "gvp-e2e",
+  "private": true,
+  "type": "module",
+  "description": "Acceptance test 17: the election lifecycle on emulated phones (see run.sh).",
+  "dependencies": {
+    "playwright": "1.56.1"
+  }
+}
